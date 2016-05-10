@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2c8e2b26c673afd39bd95661620c783d)
+# DO NOT EDIT (digest: c954edff03272e22c3fc4a72bc287c27)
 version = "0.1"
 description = "Hyper-V sockets"
 requires = "unix cstruct"
@@ -8,5 +8,15 @@ archive(byte, plugin) = "hvsock.cma"
 archive(native) = "hvsock.cmxa"
 archive(native, plugin) = "hvsock.cmxs"
 exists_if = "hvsock.cma"
+package "lwt" (
+ version = "0.1"
+ description = "Hyper-V sockets"
+ requires = "lwt hvsock"
+ archive(byte) = "hvsock_lwt.cma"
+ archive(byte, plugin) = "hvsock_lwt.cma"
+ archive(native) = "hvsock_lwt.cmxa"
+ archive(native, plugin) = "hvsock_lwt.cmxs"
+ exists_if = "hvsock_lwt.cma"
+)
 # OASIS_STOP
 
