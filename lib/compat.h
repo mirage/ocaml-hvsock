@@ -1,7 +1,7 @@
 /*
  * Compatibility layer between Windows and Linux
  */
-#ifdef _MSC_VER
+#ifdef WIN32
 #undef UNICODE
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -18,14 +18,14 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/socket.h>
-#endif /* !_MSC_VER */
+#endif /* !WIN32 */
 
-#ifdef _MSC_VER
+#ifdef WIN32
 typedef int socklen_t;
 #endif
 
 
-#ifndef _MSC_VER
+#ifndef WIN32
 /* Compat layer for Linux/Unix */
 typedef int SOCKET;
 
