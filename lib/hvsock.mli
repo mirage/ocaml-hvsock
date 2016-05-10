@@ -21,5 +21,5 @@ val bind: Unix.file_descr -> sockaddr -> unit
 val accept: Unix.file_descr -> Unix.file_descr * sockaddr
 (** [accept fd] accepts a single connection *)
 
-val connect: Unix.file_descr -> sockaddr -> Unix.file_descr
+val connect: Unix.file_descr -> sockaddr -> unit
 (** [connect fd sockaddr] connects to a remote partition *)

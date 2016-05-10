@@ -86,7 +86,7 @@ CAMLprim value stub_hvsock_socket(){
   return win_alloc_socket(s);
 }
 
-CAMLprim void stub_hvsock_bind(value sock, value vmid, value serviceid) {
+CAMLprim value stub_hvsock_bind(value sock, value vmid, value serviceid) {
   CAMLparam3(sock, vmid, serviceid);
 
   SOCKADDR_HV sa;
@@ -106,7 +106,7 @@ CAMLprim void stub_hvsock_bind(value sock, value vmid, value serviceid) {
     win32_maperr(WSAGetLastError());
     uerror("bind", Nothing);
   }
-  CAMLreturn0;
+  CAMLreturn(Val_int(0));
 }
 
 CAMLprim value stub_hvsock_accept(value sock){
@@ -155,5 +155,5 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     win32_maperr(WSAGetLastError());
     uerror("connect", Nothing);
   }
-  CAMLreturn(win_alloc_socket(res));
+  CAMLreturn(Val_int(0));
 }

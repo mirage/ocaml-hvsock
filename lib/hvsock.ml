@@ -43,7 +43,7 @@ external do_bind: Unix.file_descr -> string -> string -> unit = "stub_hvsock_bin
 
 external do_accept: Unix.file_descr -> Unix.file_descr * string * string = "stub_hvsock_accept"
 
-external do_connect: Unix.file_descr -> string -> string -> Unix.file_descr = "stub_hvsock_connect"
+external do_connect: Unix.file_descr -> string -> string -> unit = "stub_hvsock_connect"
 
 let create = do_socket
 
