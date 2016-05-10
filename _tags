@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 707d4518992b7a5131ebef70db04db09)
+# DO NOT EDIT (digest: c6f741a4020e72cb4ff53f8c4c895a94)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -24,10 +24,12 @@ true: annot, bin_annot
 # Executable test
 <lib_test/test.{native,byte}>: package(alcotest)
 <lib_test/test.{native,byte}>: package(cstruct)
+<lib_test/test.{native,byte}>: package(logs.fmt)
 <lib_test/test.{native,byte}>: package(unix)
 <lib_test/test.{native,byte}>: use_hvsock
 <lib_test/*.ml{,i,y}>: package(alcotest)
 <lib_test/*.ml{,i,y}>: package(cstruct)
+<lib_test/*.ml{,i,y}>: package(logs.fmt)
 <lib_test/*.ml{,i,y}>: package(unix)
 <lib_test/*.ml{,i,y}>: use_hvsock
 # OASIS_STOP
