@@ -31,7 +31,7 @@ Executable test
   CompiledObject:     best
   Path:               lib_test
   MainIs:             test.ml
-  BuildDepends:       hvsock, alcotest
+  BuildDepends:       hvsock, alcotest, logs.fmt
 
 Test test
   Run$:               flag(tests)

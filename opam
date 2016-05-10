@@ -22,6 +22,8 @@ remove: ["ocamlfind" "remove" "named-pipe"]
 depends: [
   "base-bytes"
   "lwt" {>= "2.4.7"}
+  "logs"
+  "fmt"
   "base-unix"
   "cmdliner"
   "ocamlfind" {build}
