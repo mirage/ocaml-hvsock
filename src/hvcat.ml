@@ -13,8 +13,8 @@ let proxy buffer_size (ic, oc) (stdin, stdout) =
       Lwt_io.write_from_exactly b buffer 0 n
       >>= fun () ->
       proxy buffer a b in
-  let (a: unit Lwt.t) = proxy a_buffer stdin oc in
   let (b: unit Lwt.t) = proxy b_buffer ic stdout in
+  let (a: unit Lwt.t) = proxy a_buffer stdin oc in
   Lwt.catch
     (fun () -> Lwt.pick [a; b])
     (function End_of_file -> Lwt.return ()
@@ -40,15 +40,21 @@ let buffer_size = 4096
 
 let rec client vmid serviceid =
   try
-    let fd = Lwt_hvsock.create () in
-    Lwt_hvsock.connect fd { Hvsock.vmid; serviceid }
-    >>= fun () ->
+    let fd = Hvsock.create () in
+    Hvsock.connect fd { Hvsock.vmid; serviceid };
+    let fd' = Lwt_unix.of_unix_file_descr ~blocking:false ~set_flags:false fd in
     Printf.fprintf stderr "Connected\n%!";
-    let ic = Lwt_io.of_fd ~mode:Lwt_io.input fd in
-    let oc = Lwt_io.of_fd ~mode:Lwt_io.output fd in
-    proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
-    >>= fun () ->
-    Lwt_unix.close fd
+    let msg = "hello\n" in
+    Lwt_unix.write fd' msg 0 (String.length msg)
+    >>= fun n ->
+    Printf.fprintf stderr "written %d bytes\n%!" n;
+(*
+    let n = Unix.read fd msg 0 (String.length msg) in
+*)
+    Lwt_unix.read fd' msg 0 (String.length msg)
+    >>= fun n ->
+    Printf.fprintf stderr "read %d bytes\n%!" n;
+    Lwt_unix.close fd'
   with
   | Unix.Unix_error(Unix.ENOENT, _, _) ->
     Printf.fprintf stderr "Server not found (ENOENT)\n";
