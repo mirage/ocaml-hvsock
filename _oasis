@@ -3,7 +3,7 @@ Name:        hvsock
 Version:     0.1
 Synopsis:    Hyper-V sockets
 Authors:     David Scott, Rolf Neugebauer
-License:     LGPL-2.1 with OCaml linking exception
+License:     ISC
 Plugins:     META (0.3), DevFiles (0.4)
 BuildTools:  ocamlbuild
 OCamlVersion: >= 3.12.1
@@ -24,7 +24,7 @@ Library "hvsock_lwt"
   Findlibname:        lwt
   Findlibparent:      hvsock
   Modules:            Lwt_hvsock
-  BuildDepends:       lwt, hvsock
+  BuildDepends:       lwt, lwt.preemptive, threads, hvsock
 
 Document api
   Title:              Documentation and API reference

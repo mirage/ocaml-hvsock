@@ -1,14 +1,28 @@
 
 open Hvsock
 
-val create: unit -> Lwt_unix.file_descr
+type t
+(** A Hyper-V socket *)
+
+val create: unit -> t
 (** [create ()] creates an unbound AF_HVSOCK socket *)
 
-val bind: Lwt_unix.file_descr -> sockaddr -> unit
-(** [bind socket sockaddr] binds [socket] to [sockaddr] *)
+val bind: t -> sockaddr -> unit
+(** [bind t sockaddr] binds [socket] to [sockaddr] *)
 
-val accept: Lwt_unix.file_descr -> (Lwt_unix.file_descr * sockaddr) Lwt.t
-(** [accept fd] accepts a single connection *)
+val accept: t -> (t * sockaddr) Lwt.t
+(** [accept t] accepts a single connection *)
 
-val connect: Lwt_unix.file_descr -> sockaddr -> unit Lwt.t
-(** [connect fd sockaddr] connects to a remote partition *)
+val connect: t -> sockaddr -> unit Lwt.t
+(** [connect t sockaddr] connects to a remote partition *)
+
+val read: t -> bytes -> int -> int -> int Lwt.t
+(** [read t buf offset len] reads up to [len] bytes from [t] into [buf]
+    starting at offset [offset] *)
+
+val write: t -> bytes -> int -> int -> int Lwt.t
+(** [write t buf offset len] writes up to [len] bytes from [t] into [buf]
+    starting at offset [offset] *)
+
+val close: t -> unit Lwt.t
+(** [close t] closes a socket *)
