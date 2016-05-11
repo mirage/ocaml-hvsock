@@ -6,6 +6,13 @@ type vmid =
   | Parent
   | Id of string
 
+let string_of_vmid = function
+  | Wildcard -> "*"
+  | Children -> "children"
+  | Loopback -> "loopback"
+  | Parent -> "parent"
+  | Id x -> x
+
 type sockaddr = {
   vmid: vmid;
   serviceid: string;

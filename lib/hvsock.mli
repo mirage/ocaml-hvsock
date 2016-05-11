@@ -6,6 +6,8 @@ type vmid =
   | Parent        (** The parent partition *)
   | Id of string  (** A specific VM id *)
 
+val string_of_vmid: vmid -> string
+
 type sockaddr = {
   vmid: vmid;         (** identifies a partition *)
   serviceid: string;  (** identifies a service *)

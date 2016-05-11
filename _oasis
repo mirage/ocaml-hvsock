@@ -34,6 +34,13 @@ Document api
   Install:            false
   XOcamlbuildLibraries: hvsock, hvsock.lwt
 
+Executable hvcat
+  Install:            false
+  CompiledObject:     best
+  Path:               src
+  MainIs:             hvcat.ml
+  BuildDepends:       cmdliner, hvsock, hvsock.lwt, lwt, lwt.unix, bytes
+
 Executable test
   Build$:             flag(tests)
   Install:            false
