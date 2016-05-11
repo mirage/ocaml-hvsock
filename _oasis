@@ -14,7 +14,7 @@ Library "hvsock"
   Path:               lib
   Findlibname:        hvsock
   Modules:            Hvsock
-  BuildDepends:       unix, cstruct
+  BuildDepends:       unix
   CSources:           hvsock_stubs.c, compat.h
 
 Library "hvsock_lwt"
