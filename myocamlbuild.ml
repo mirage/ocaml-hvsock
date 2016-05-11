@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 0efd01042db2390c33f51085038136d4) *)
+(* DO NOT EDIT (digest: 015157482a862364a7d6a14d163eec88) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -771,7 +771,8 @@ let package_default =
        [("hvsock", ["lib"], []); ("hvsock_lwt", ["lwt"], [])];
      lib_c = [("hvsock", "lib", ["lib/compat.h"])];
      flags = [];
-     includes = [("lwt", ["lib"]); ("lib_test", ["lib"])]
+     includes =
+       [("src", ["lib"; "lwt"]); ("lwt", ["lib"]); ("lib_test", ["lib"])]
   }
   ;;
 
@@ -779,6 +780,6 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 783 "myocamlbuild.ml"
+# 784 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;

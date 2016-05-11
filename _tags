@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4d27cf7161013ca6b091643a5a7e8291)
+# DO NOT EDIT (digest: aa3c9cf58f573d778a6a2a984a488fa9)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -27,6 +27,23 @@ true: annot, bin_annot
 <lwt/*.ml{,i,y}>: package(lwt)
 <lwt/*.ml{,i,y}>: package(unix)
 <lwt/*.ml{,i,y}>: use_hvsock
+# Executable hvcat
+<src/hvcat.{native,byte}>: package(bytes)
+<src/hvcat.{native,byte}>: package(cmdliner)
+<src/hvcat.{native,byte}>: package(cstruct)
+<src/hvcat.{native,byte}>: package(lwt)
+<src/hvcat.{native,byte}>: package(lwt.unix)
+<src/hvcat.{native,byte}>: package(unix)
+<src/hvcat.{native,byte}>: use_hvsock
+<src/hvcat.{native,byte}>: use_hvsock_lwt
+<src/*.ml{,i,y}>: package(bytes)
+<src/*.ml{,i,y}>: package(cmdliner)
+<src/*.ml{,i,y}>: package(cstruct)
+<src/*.ml{,i,y}>: package(lwt)
+<src/*.ml{,i,y}>: package(lwt.unix)
+<src/*.ml{,i,y}>: package(unix)
+<src/*.ml{,i,y}>: use_hvsock
+<src/*.ml{,i,y}>: use_hvsock_lwt
 # Executable test
 <lib_test/test.{native,byte}>: package(alcotest)
 <lib_test/test.{native,byte}>: package(cstruct)
