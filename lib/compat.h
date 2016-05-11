@@ -7,7 +7,17 @@
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <hvsocket.h>
+/* from hvsocket.h */
+#define AF_HYPERV 34
+#define HV_PROTOCOL_RAW 1
+
+typedef struct _SOCKADDR_HV
+{
+    ADDRESS_FAMILY Family;
+    USHORT Reserved;
+    GUID VmId;
+    GUID ServiceId;
+} SOCKADDR_HV;
 
 #pragma comment (lib, "Ws2_32.lib")
 #pragma comment (lib, "Mswsock.lib")
@@ -62,7 +72,6 @@ typedef struct _GUID {
 #define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
     const GUID name = {l, w1, w2, {b1, b2,  b3,  b4,  b5,  b6,  b7,  b8}}
 
-
 /* HV Socket definitions */
 #define AF_HYPERV 42
 #define HV_PROTOCOL_RAW 1
@@ -74,6 +83,8 @@ typedef struct _SOCKADDR_HV
     GUID VmId;
     GUID ServiceId;
 } SOCKADDR_HV;
+
+#endif
 
 DEFINE_GUID(HV_GUID_ZERO,
     0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
@@ -89,4 +100,3 @@ DEFINE_GUID(HV_GUID_LOOPBACK,
 DEFINE_GUID(HV_GUID_PARENT,
     0xa42e7cda, 0xd03f, 0x480c, 0x9c, 0xc2, 0xa4, 0xde, 0x20, 0xab, 0xb8, 0x78);
 
-#endif
