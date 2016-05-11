@@ -40,19 +40,19 @@ let buffer_size = 4096
 
 let rec client vmid serviceid =
   try
-    let fd = Lwt_hvsock.create () in
-    Lwt_hvsock.connect fd { Hvsock.vmid; serviceid }
-    >>= fun () ->
+    let fd = Hvsock.create () in
+    Hvsock.connect fd { Hvsock.vmid; serviceid };
     Printf.fprintf stderr "Connected\n%!";
-    let ic = Lwt_io.of_fd ~mode:Lwt_io.input fd in
-    let oc = Lwt_io.of_fd ~mode:Lwt_io.output fd in
-    proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
-    >>= fun () ->
-    Lwt_unix.close fd
+    let msg = "hello\n" in
+    Unix.write fd msg 0 (String.length msg);
+    Printf.fprintf stderr "Reading 1 byte\n%!";
+    let b = Bytes.create 6 in
+    let n = Unix.read fd b 0 6 in
+    Printf.fprintf stderr "Read %d byte (%s)\n%!" n b;
+    Unix.close fd
   with
   | Unix.Unix_error(Unix.ENOENT, _, _) ->
-    Printf.fprintf stderr "Server not found (ENOENT)\n";
-    Lwt.return ()
+    Printf.fprintf stderr "Server not found (ENOENT)\n"
 
 let one_shot_server vmid serviceid =
   let s = Lwt_hvsock.create () in
@@ -92,7 +92,7 @@ let main listen echo vmid serviceid =
   let t = match listen, echo with
     | true, false -> one_shot_server vmid serviceid
     | true, true -> echo_server vmid serviceid
-    | false, _ -> client vmid serviceid in
+    | false, _ -> client vmid serviceid; Lwt.return () in
   Lwt_main.run t
 
 let cmd =
