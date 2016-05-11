@@ -38,8 +38,6 @@ let accept fd =
       (Lwt_unix.of_unix_file_descr ~blocking:false fd, addr)
     )
 
-exception Retry
-
 let connect ch addr =
     if Sys.win32 then
       (* [in_progress] tell wether connection has started but not
@@ -57,14 +55,14 @@ let connect ch addr =
                      has completed. *)
                   ()
           else
-            raise Retry
+            raise Lwt_unix.Retry
         else
           try
             connect (Lwt_unix.unix_file_descr ch) addr
           with
             | Unix.Unix_error (Unix.EWOULDBLOCK, _, _) ->
                 in_progress := true;
-                raise Retry
+                raise Lwt_unix.Retry
       end
     else
       (* [in_progress] tell wether connection has started but not
@@ -89,5 +87,5 @@ let connect ch addr =
           with
             | Unix.Unix_error (Unix.EINPROGRESS, _, _) ->
                 in_progress := true;
-                raise Retry
+                raise Lwt_unix.Retry
       end
