@@ -50,6 +50,7 @@ typedef int SOCKET;
 #define win32_maperr(s) /* s */
 #define win_alloc_socket(s) Val_int(s)
 #define Handle_val(x) Int_val(x)
+#define Socket_val(x) Int_val(x)
 #endif
 
 #define closesocket(_fd) close(_fd)

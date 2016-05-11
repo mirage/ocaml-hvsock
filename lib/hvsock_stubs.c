@@ -97,7 +97,7 @@ CAMLprim value stub_hvsock_bind(value sock, value vmid, value serviceid) {
 
   int res;
 
-  res = bind(Handle_val(sock), (const struct sockaddr *)&sa, sizeof(sa));
+  res = bind(Socket_val(sock), (const struct sockaddr *)&sa, sizeof(sa));
   if (res == SOCKET_ERROR) {
     win32_maperr(WSAGetLastError());
     uerror("bind", Nothing);
@@ -108,7 +108,7 @@ CAMLprim value stub_hvsock_bind(value sock, value vmid, value serviceid) {
 CAMLprim value stub_hvsock_accept(value sock){
   CAMLparam1(sock);
   CAMLlocal1(result);
-  SOCKET lsock = Handle_val(sock);
+  SOCKET lsock = Socket_val(sock);
   SOCKET csock = INVALID_SOCKET;
   SOCKADDR_HV sac;
   socklen_t socklen = sizeof(sac);
@@ -131,7 +131,7 @@ CAMLprim value stub_hvsock_accept(value sock){
 CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   CAMLparam3(sock, vmid, serviceid);
   SOCKADDR_HV sa;
-  SOCKET fd = Handle_val(sock);
+  SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
 
   sa.Family = AF_HYPERV;
