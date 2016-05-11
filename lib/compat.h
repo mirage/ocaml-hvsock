@@ -70,9 +70,6 @@ typedef struct _GUID {
     uint8_t  Data4[8];
 } GUID;
 
-#define DEFINE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
-    const GUID name = {l, w1, w2, {b1, b2,  b3,  b4,  b5,  b6,  b7,  b8}}
-
 /* HV Socket definitions */
 #define AF_HYPERV 42
 #define HV_PROTOCOL_RAW 1
@@ -87,17 +84,20 @@ typedef struct _SOCKADDR_HV
 
 #endif
 
-DEFINE_GUID(HV_GUID_ZERO,
+#define MAKE_GUID(name, l, w1, w2, b1, b2, b3, b4, b5, b6, b7, b8) \
+    const GUID name = {l, w1, w2, {b1, b2,  b3,  b4,  b5,  b6,  b7,  b8}}
+
+MAKE_GUID(HV_GUID_ZERO,
     0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
-DEFINE_GUID(HV_GUID_BROADCAST,
+MAKE_GUID(HV_GUID_BROADCAST,
     0xFFFFFFFF, 0xFFFF, 0xFFFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-DEFINE_GUID(HV_GUID_WILDCARD,
+MAKE_GUID(HV_GUID_WILDCARD,
     0x00000000, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
 
-DEFINE_GUID(HV_GUID_CHILDREN,
+MAKE_GUID(HV_GUID_CHILDREN,
     0x90db8b89, 0x0d35, 0x4f79, 0x8c, 0xe9, 0x49, 0xea, 0x0a, 0xc8, 0xb7, 0xcd);
-DEFINE_GUID(HV_GUID_LOOPBACK,
+MAKE_GUID(HV_GUID_LOOPBACK,
     0xe0e16197, 0xdd56, 0x4a10, 0x91, 0x95, 0x5e, 0xe7, 0xa1, 0x55, 0xa8, 0x38);
-DEFINE_GUID(HV_GUID_PARENT,
+MAKE_GUID(HV_GUID_PARENT,
     0xa42e7cda, 0xd03f, 0x480c, 0x9c, 0xc2, 0xa4, 0xde, 0x20, 0xab, 0xb8, 0x78);
 
