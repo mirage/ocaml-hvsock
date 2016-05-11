@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 1ea6e4d6d20a61d22a694de11f677b6b)
+# DO NOT EDIT (digest: 3407e0c9a136fde7f0145ab5628756d3)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -22,20 +22,26 @@ true: annot, bin_annot
 # Library hvsock_lwt
 "lwt/hvsock_lwt.cmxs": use_hvsock_lwt
 <lwt/*.ml{,i,y}>: package(lwt)
+<lwt/*.ml{,i,y}>: package(lwt.preemptive)
+<lwt/*.ml{,i,y}>: package(threads)
 <lwt/*.ml{,i,y}>: package(unix)
 <lwt/*.ml{,i,y}>: use_hvsock
 # Executable hvcat
 <src/hvcat.{native,byte}>: package(bytes)
 <src/hvcat.{native,byte}>: package(cmdliner)
 <src/hvcat.{native,byte}>: package(lwt)
+<src/hvcat.{native,byte}>: package(lwt.preemptive)
 <src/hvcat.{native,byte}>: package(lwt.unix)
+<src/hvcat.{native,byte}>: package(threads)
 <src/hvcat.{native,byte}>: package(unix)
 <src/hvcat.{native,byte}>: use_hvsock
 <src/hvcat.{native,byte}>: use_hvsock_lwt
 <src/*.ml{,i,y}>: package(bytes)
 <src/*.ml{,i,y}>: package(cmdliner)
 <src/*.ml{,i,y}>: package(lwt)
+<src/*.ml{,i,y}>: package(lwt.preemptive)
 <src/*.ml{,i,y}>: package(lwt.unix)
+<src/*.ml{,i,y}>: package(threads)
 <src/*.ml{,i,y}>: package(unix)
 <src/*.ml{,i,y}>: use_hvsock
 <src/*.ml{,i,y}>: use_hvsock_lwt
