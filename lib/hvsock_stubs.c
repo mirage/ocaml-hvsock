@@ -15,10 +15,6 @@
 #include <caml/unixsupport.h>
 #include <caml/callback.h>
 
-/* 3049197C-9A4E-4FBF-9367-97F792F16994 */
-DEFINE_GUID(MY_SERVICE_GUID,
-    0x3049197c, 0x9a4e, 0x4fbf, 0x93, 0x67, 0x97, 0xf7, 0x92, 0xf1, 0x69, 0x94);
-
 
 /* Helper macros for parsing/printing GUIDs */
 #define GUID_FMT "%08x-%04hx-%04hx-%02x%02x-%02x%02x%02x%02x%02x%02x"
