@@ -53,11 +53,26 @@ let make_channels t =
   let oc = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.output write in
   ic, oc
 
-let rec client vmid serviceid =
+let rec connect vmid serviceid =
+  let fd = Lwt_hvsock.create () in
+  Lwt.catch
+    (fun () ->
+      Lwt_hvsock.connect fd { Hvsock.vmid; serviceid }
+      >>= fun () ->
+      Lwt.return fd
+    ) (fun e ->
+      Printf.fprintf stderr "connect raised %s: sleep 1s and retrying\n%!" (Printexc.to_string e);
+      Lwt_hvsock.close fd
+      >>= fun () ->
+      Lwt_unix.sleep 1.
+      >>= fun () ->
+      connect vmid serviceid
+    )
+
+let client vmid serviceid =
   try
-    let fd = Lwt_hvsock.create () in
-    Lwt_hvsock.connect fd { Hvsock.vmid; serviceid }
-    >>= fun () ->
+    connect vmid serviceid
+    >>= fun fd ->
     Printf.fprintf stderr "Connected\n%!";
     let ic, oc = make_channels fd in
     proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
