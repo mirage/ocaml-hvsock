@@ -16,7 +16,7 @@ type t = {
 let create () = { fd = Some (create ()) }
 
 let close t = match t with
-  | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "close", ""))
+  | { fd = None } -> Lwt.return ()
   | { fd = Some x } ->
     t.fd <- None;
     Lwt_preemptive.detach Unix.close x
