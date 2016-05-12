@@ -1,0 +1,124 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Lwt_hvsock.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Hvsock" rel="Chapter" href="Hvsock.html">
+<link title="Lwt_hvsock" rel="Chapter" href="Lwt_hvsock.html"><title>Hvsock</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Lwt_hvsock.html" title="Lwt_hvsock">Next</a>
+</div>
+<h1>Module <a href="type_Hvsock.html">Hvsock</a></h1>
+
+<pre><span class="keyword">module</span> Hvsock: <code class="code">sig</code> <a href="Hvsock.html">..</a> <code class="code">end</code></pre><div class="info module top">
+Any partition<br>
+</div>
+<hr width="100%">
+
+<pre><code><span id="TYPEvmid"><span class="keyword">type</span> <code class="type"></code>vmid</span> = </code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTvmid.Wildcard"><span class="constructor">Wildcard</span></span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+Any partition<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTvmid.Children"><span class="constructor">Children</span></span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+Any child partition<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTvmid.Loopback"><span class="constructor">Loopback</span></span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+The same partition<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTvmid.Parent"><span class="constructor">Parent</span></span></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+The parent partition<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code><span class="keyword">|</span></code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTvmid.Id"><span class="constructor">Id</span></span> <span class="keyword">of</span> <code class="type">string</code></code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+A specific VM id<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+
+
+
+<pre><span id="VALstring_of_vmid"><span class="keyword">val</span> string_of_vmid</span> : <code class="type"><a href="Hvsock.html#TYPEvmid">vmid</a> -> string</code></pre>
+<pre><code><span id="TYPEsockaddr"><span class="keyword">type</span> <code class="type"></code>sockaddr</span> = {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTsockaddr.vmid">vmid</span>&nbsp;: <code class="type"><a href="Hvsock.html#TYPEvmid">vmid</a></code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+identifies a partition<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTsockaddr.serviceid">serviceid</span>&nbsp;: <code class="type">string</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><div class="info ">
+identifies a service<br>
+</div>
+</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info ">
+An AF_HVSOCK socket address<br>
+</div>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">unit -> Unix.file_descr</code></pre><div class="info ">
+<code class="code">create ()</code> creates an unbound AF_HVSOCK socket<br>
+</div>
+
+<pre><span id="VALbind"><span class="keyword">val</span> bind</span> : <code class="type">Unix.file_descr -> <a href="Hvsock.html#TYPEsockaddr">sockaddr</a> -> unit</code></pre><div class="info ">
+<code class="code">bind socket sockaddr</code> binds <code class="code">socket</code> to <code class="code">sockaddr</code><br>
+</div>
+
+<pre><span id="VALaccept"><span class="keyword">val</span> accept</span> : <code class="type">Unix.file_descr -> Unix.file_descr * <a href="Hvsock.html#TYPEsockaddr">sockaddr</a></code></pre><div class="info ">
+<code class="code">accept fd</code> accepts a single connection<br>
+</div>
+
+<pre><span id="VALconnect"><span class="keyword">val</span> connect</span> : <code class="type">Unix.file_descr -> <a href="Hvsock.html#TYPEsockaddr">sockaddr</a> -> unit</code></pre><div class="info ">
+<code class="code">connect fd sockaddr</code> connects to a remote partition<br>
+</div>
+</body></html>
