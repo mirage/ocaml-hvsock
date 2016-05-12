@@ -2,7 +2,7 @@
 
 These bindings allow Host <-> VM communication on Hyper-V systems.
 
-Please read [the API documentation](https://mirage.github.io/ocaml-hvsock/index.html).
+Please read [the API documentation](https://djs55.github.io/ocaml-hvsock/index.html).
 
 # Example
 
