@@ -31,4 +31,4 @@ depends: [
   "alcotest" {test & >= "0.4.0"}
 ]
 
-available: [ ocaml-version >= "3.12.1" ]
+available: [ ocaml-version >= "4.01.0" ]
