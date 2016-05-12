@@ -43,6 +43,10 @@ calls like `select` so we must always use blocking I/O from background threads, 
 than regular asynchronous I/O. This means that the Lwt connection type has been made
 opaque.
 
+The client `connect` call seems to block forever if the server calls `listen`
+after the client calls `connect`. The `Lwt_hvsock.connect` works around this
+with a self-imposed 1s timeout after which time it will raise `ECONNREFUSED`.
+
 # Background
 
 For background, see the [MSDN article on making an integration service](https://msdn.microsoft.com/en-us/virtualization/hyperv_on_windows/develop/make_mgmt_service)
