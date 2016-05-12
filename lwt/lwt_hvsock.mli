@@ -16,11 +16,11 @@ val accept: t -> (t * sockaddr) Lwt.t
 val connect: t -> sockaddr -> unit Lwt.t
 (** [connect t sockaddr] connects to a remote partition *)
 
-val read: t -> bytes -> int -> int -> int Lwt.t
+val read: t -> Bytes.t -> int -> int -> int Lwt.t
 (** [read t buf offset len] reads up to [len] bytes from [t] into [buf]
     starting at offset [offset] *)
 
-val write: t -> bytes -> int -> int -> int Lwt.t
+val write: t -> Bytes.t -> int -> int -> int Lwt.t
 (** [write t buf offset len] writes up to [len] bytes from [t] into [buf]
     starting at offset [offset] *)
 

@@ -1,12 +1,12 @@
 OASISFormat: 0.3
 Name:        hvsock
-Version:     0.2
+Version:     0.3
 Synopsis:    Hyper-V sockets
 Authors:     David Scott, Rolf Neugebauer
 License:     ISC
 Plugins:     META (0.3), DevFiles (0.4)
 BuildTools:  ocamlbuild
-OCamlVersion: >= 3.12.1
+OCamlVersion: >= 4.01.0
 
 Library "hvsock"
   Pack:               false
@@ -24,7 +24,7 @@ Library "hvsock_lwt"
   Findlibname:        lwt
   Findlibparent:      hvsock
   Modules:            Lwt_hvsock
-  BuildDepends:       lwt, lwt.preemptive, threads, hvsock
+  BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes
 
 Document api
   Title:              Documentation and API reference
