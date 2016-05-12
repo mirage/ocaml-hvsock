@@ -1,3 +1,6 @@
+0.4 (2016-05-12)
+- Add an implementation of V1_LWT.FLOW
+
 0.3 (2016-05-12)
 - Avoid running out of Lwt_preemptive thread pool threads
 
