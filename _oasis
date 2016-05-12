@@ -24,7 +24,7 @@ Library "hvsock_lwt"
   Findlibname:        lwt
   Findlibparent:      hvsock
   Modules:            Lwt_hvsock
-  BuildDepends:       lwt, lwt.preemptive, threads, hvsock
+  BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes
 
 Document api
   Title:              Documentation and API reference
