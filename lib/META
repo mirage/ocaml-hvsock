@@ -1,6 +1,6 @@
 # OASIS_START
-# DO NOT EDIT (digest: 85433f4a749036a0a0d567873a45a26b)
-version = "0.2"
+# DO NOT EDIT (digest: 714c7d7cc9b2e896e183f1349aabc813)
+version = "0.3"
 description = "Hyper-V sockets"
 requires = "unix"
 archive(byte) = "hvsock.cma"
@@ -9,7 +9,7 @@ archive(native) = "hvsock.cmxa"
 archive(native, plugin) = "hvsock.cmxs"
 exists_if = "hvsock.cma"
 package "lwt" (
- version = "0.2"
+ version = "0.3"
  description = "Hyper-V sockets"
  requires = "lwt lwt.preemptive threads hvsock"
  archive(byte) = "hvsock_lwt.cma"
