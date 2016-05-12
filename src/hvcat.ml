@@ -38,17 +38,31 @@ let echo =
 
 let buffer_size = 4096
 
+let make_channels t =
+  let read_buffer = Bytes.make buffer_size '\000' in
+  let read b off len =
+    Lwt_hvsock.read t read_buffer 0 len
+    >>= fun n ->
+    Lwt_bytes.blit_from_bytes read_buffer 0 b off len;
+    Lwt.return n in
+  let write_buffer = Bytes.make buffer_size '\000' in
+  let write b off len =
+    Lwt_bytes.blit_to_bytes b off write_buffer 0 len;
+    Lwt_hvsock.write t write_buffer 0 len in
+  let ic = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.input read in
+  let oc = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.output write in
+  ic, oc
+
 let rec client vmid serviceid =
   try
     let fd = Lwt_hvsock.create () in
     Lwt_hvsock.connect fd { Hvsock.vmid; serviceid }
     >>= fun () ->
     Printf.fprintf stderr "Connected\n%!";
-    let ic = Lwt_io.of_fd ~mode:Lwt_io.input fd in
-    let oc = Lwt_io.of_fd ~mode:Lwt_io.output fd in
+    let ic, oc = make_channels fd in
     proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
     >>= fun () ->
-    Lwt_unix.close fd
+    Lwt_hvsock.close fd
   with
   | Unix.Unix_error(Unix.ENOENT, _, _) ->
     Printf.fprintf stderr "Server not found (ENOENT)\n";
@@ -60,9 +74,12 @@ let one_shot_server vmid serviceid =
   Lwt_hvsock.accept s
   >>= fun (client, { Hvsock.vmid; serviceid }) ->
   Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.string_of_vmid vmid) serviceid;
-  let ic = Lwt_io.of_fd ~close:Lwt.return ~mode:Lwt_io.input s in
-  let oc = Lwt_io.of_fd ~mode:Lwt_io.output s in
+  let ic, oc = make_channels client in
   proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
+  >>= fun () ->
+  Lwt_hvsock.close client
+  >>= fun () ->
+  Lwt_hvsock.close s
 
 let echo_server vmid serviceid =
   let s = Lwt_hvsock.create () in
@@ -72,17 +89,18 @@ let echo_server vmid serviceid =
     >>= fun (fd, { Hvsock.vmid; serviceid }) ->
     Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.string_of_vmid vmid) serviceid;
     Lwt.async (fun () ->
-      let ic = Lwt_io.of_fd ~close:Lwt.return ~mode:Lwt_io.input fd in
-      let oc = Lwt_io.of_fd ~close:Lwt.return ~mode:Lwt_io.output fd in
+      let ic, oc = make_channels fd in
       proxy buffer_size (ic, oc) (ic, oc)
       >>= fun () ->
-      Lwt_unix.close fd
+      Lwt_hvsock.close fd
       >>= fun () ->
       Printf.fprintf stderr "Disconnected\n%!";
       Lwt.return ()
     );
     loop () in
   loop ()
+  >>= fun () ->
+  Lwt_hvsock.close s
 
 let main listen echo vmid serviceid =
   let vmid = match vmid with

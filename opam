@@ -3,7 +3,7 @@ name: "hvsock"
 maintainer: "dave@recoil.org"
 version: "0.1"
 authors: [ "David Scott" "Rolf  Neugebauer"]
-license: "ISC, LGPL2.1 + OCaml linking exception"
+license: "ISC"
 homepage: "https://github.com/djs55/ocaml-hvsock"
 dev-repo: "https://github.com/djs55/ocaml-hvsock.git"
 bug-reports: "https://github.com/djs55/ocaml-hvsock/issues"
