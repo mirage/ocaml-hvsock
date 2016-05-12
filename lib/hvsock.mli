@@ -24,4 +24,7 @@ val accept: Unix.file_descr -> Unix.file_descr * sockaddr
 (** [accept fd] accepts a single connection *)
 
 val connect: Unix.file_descr -> sockaddr -> unit
-(** [connect fd sockaddr] connects to a remote partition *)
+(** [connect fd sockaddr] connects to a remote partition. Note this
+    has been observed to block forever if the server is not running
+    when this call is executed, even if the server starts up afterwards.
+    The workaround seems to be to close the fd and try again. *)
