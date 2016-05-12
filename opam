@@ -26,6 +26,8 @@ depends: [
   "fmt"
   "base-unix"
   "cmdliner"
+  "mirage-types-lwt"
+  "cstruct"
   "ocamlfind" {build}
   "ocamlbuild" {build}
   "alcotest" {test & >= "0.4.0"}
