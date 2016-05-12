@@ -15,11 +15,28 @@ type t = {
 
 let create () = { fd = Some (create ()) }
 
+let detach f x =
+  let stream, push = Lwt_stream.create () in
+  let return x = Lwt_preemptive.run_in_main (fun () ->
+    push (Some x);
+    Lwt.return_unit
+  ) in
+  let _thread = Thread.create (fun () ->
+    try
+      return (`Ok (f x))
+    with e ->
+      return (`Error e)
+  ) () in
+  Lwt_stream.next stream
+  >>= function
+  | `Ok x -> Lwt.return x
+  | `Error e -> Lwt.fail e
+
 let close t = match t with
   | { fd = None } -> Lwt.return ()
   | { fd = Some x } ->
     t.fd <- None;
-    Lwt_preemptive.detach Unix.close x
+    detach Unix.close x
 
 let bind t addr = match t with
   | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
@@ -28,7 +45,7 @@ let bind t addr = match t with
 let accept = function
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))
   | { fd = Some x } ->
-    Lwt_preemptive.detach accept x
+    detach accept x
     >>= fun (y, addr) ->
     Lwt.return ({ fd = Some y }, addr)
 
@@ -39,7 +56,7 @@ let connect t addr = match t with
        Declare a timeout and a failed connect results in a closed fd
        and an ECONNREFUSED *)
     let connect_t =
-      Lwt_preemptive.detach (connect x) addr
+      detach (connect x) addr
       >>= fun () ->
       Lwt.return true in
     let timeout_t =
@@ -56,9 +73,8 @@ let connect t addr = match t with
 
 let read t buf off len = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
-  | { fd = Some fd } -> Lwt_preemptive.detach (Unix.read fd buf off) len
+  | { fd = Some fd } -> detach (Unix.read fd buf off) len
 
 let write t buf off len = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
-  | { fd = Some fd } -> Lwt_preemptive.detach (Unix.write fd buf off) len
-
+  | { fd = Some fd } -> detach (Unix.write fd buf off) len
