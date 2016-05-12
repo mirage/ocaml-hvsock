@@ -23,8 +23,9 @@ Library "hvsock_lwt"
   Path:               lwt
   Findlibname:        lwt
   Findlibparent:      hvsock
-  Modules:            Lwt_hvsock
-  BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes
+  Modules:            Lwt_hvsock, Flow_lwt_hvsock
+  BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes,
+    mirage-types.lwt, cstruct
 
 Document api
   Title:              Documentation and API reference
