@@ -87,6 +87,10 @@ let bind t addr = match t with
   | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
   | { fd = Some x } -> bind x addr
 
+let listen t n = match t with
+  | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
+  | { fd = Some x } -> Unix.listen x n
+
 let accept = function
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))
   | { fd = Some x } ->
