@@ -115,11 +115,11 @@ CAMLprim value stub_hvsock_accept(value sock){
 
   caml_release_runtime_system();
   csock = accept(lsock, (struct sockaddr *)&sac, &socklen);
+  caml_acquire_runtime_system();
   if (csock == INVALID_SOCKET) {
     win32_maperr(WSAGetLastError());
     uerror("accept", Nothing);
   }
-  caml_acquire_runtime_system();
 
   result = caml_alloc_tuple(3);
   Store_field(result, 0, win_alloc_socket(csock));
