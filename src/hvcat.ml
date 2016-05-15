@@ -86,6 +86,7 @@ let client vmid serviceid =
 let one_shot_server vmid serviceid =
   let s = Lwt_hvsock.create () in
   Lwt_hvsock.bind s { Hvsock.vmid; serviceid };
+  Lwt_hvsock.listen s 1;
   Lwt_hvsock.accept s
   >>= fun (client, { Hvsock.vmid; serviceid }) ->
   Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.string_of_vmid vmid) serviceid;
@@ -99,6 +100,7 @@ let one_shot_server vmid serviceid =
 let echo_server vmid serviceid =
   let s = Lwt_hvsock.create () in
   Lwt_hvsock.bind s { Hvsock.vmid; serviceid };
+  Lwt_hvsock.listen s 5;
   let rec loop () =
     Lwt_hvsock.accept s
     >>= fun (fd, { Hvsock.vmid; serviceid }) ->

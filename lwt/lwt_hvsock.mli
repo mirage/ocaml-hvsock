@@ -10,6 +10,9 @@ val create: unit -> t
 val bind: t -> sockaddr -> unit
 (** [bind t sockaddr] binds [socket] to [sockaddr] *)
 
+val listen: t -> int -> unit
+(** [listen t queue] *)
+
 val accept: t -> (t * sockaddr) Lwt.t
 (** [accept t] accepts a single connection *)
 

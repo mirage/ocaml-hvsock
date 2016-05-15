@@ -9,11 +9,54 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
-type t = {
-  mutable fd: Unix.file_descr option
+type ('a, 'b) r =
+  | Ok of 'a
+  | Error of 'b
+
+type result = (int, exn) r
+
+type request = {
+  file_descr: Unix.file_descr;
+  buf: string;
+  off: int;
+  len: int;
+  result: int Lwt.u;
 }
 
-let create () = { fd = Some (create ()) }
+type t = {
+  mutable fd: Unix.file_descr option;
+  push_read_request: request option -> unit;
+  push_write_request: request option -> unit;
+}
+
+let rec handle_requests blocking_op requests =
+  match Lwt_preemptive.run_in_main (fun () ->
+    Lwt.catch
+      (fun () -> Lwt_stream.next requests >>= fun x -> Lwt.return (Some x))
+      (fun _ -> Lwt.return None)
+    ) with
+  | None -> ()
+  | Some r ->
+    let result =
+      try
+        Ok (blocking_op r.file_descr r.buf r.off r.len)
+      with
+      | e -> Error e in
+    Lwt_preemptive.run_in_main (fun () ->
+      match result with
+      | Ok x -> Lwt.wakeup_later r.result x; Lwt.return_unit
+      | Error e -> Lwt.wakeup_later_exn r.result e; Lwt.return_unit
+    );
+    handle_requests blocking_op requests
+
+let make fd =
+  let read_requests, push_read_request = Lwt_stream.create () in
+  let write_requests, push_write_request = Lwt_stream.create () in
+  let _reader = Thread.create (handle_requests Unix.read) read_requests in
+  let _writer = Thread.create (handle_requests Unix.write) write_requests in
+  { fd = Some fd; push_read_request; push_write_request; }
+
+let create () = make (create ())
 
 let detach f x =
   let stream, push = Lwt_stream.create () in
@@ -36,18 +79,24 @@ let close t = match t with
   | { fd = None } -> Lwt.return ()
   | { fd = Some x } ->
     t.fd <- None;
+    t.push_read_request None;
+    t.push_write_request None;
     detach Unix.close x
 
 let bind t addr = match t with
   | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
   | { fd = Some x } -> bind x addr
 
+let listen t n = match t with
+  | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
+  | { fd = Some x } -> Unix.listen x n
+
 let accept = function
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))
   | { fd = Some x } ->
     detach accept x
     >>= fun (y, addr) ->
-    Lwt.return ({ fd = Some y }, addr)
+    Lwt.return (make y, addr)
 
 let connect t addr = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "connect", ""))
@@ -73,8 +122,16 @@ let connect t addr = match t with
 
 let read t buf off len = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
-  | { fd = Some fd } -> detach (Unix.read fd buf off) len
+  | { fd = Some file_descr; push_read_request } ->
+    let t, result = Lwt.task () in
+    let request = { file_descr; buf; off; len; result } in
+    push_read_request (Some request);
+    t
 
 let write t buf off len = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
-  | { fd = Some fd } -> detach (Unix.write fd buf off) len
+  | { fd = Some file_descr; push_write_request } ->
+    let t, result = Lwt.task () in
+    let request = { file_descr; buf; off; len; result } in
+    push_write_request (Some request);
+    t
