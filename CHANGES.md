@@ -1,3 +1,9 @@
+0.5 (2016-05-21)
+- Bump Linux AF_HYPERV to 43
+- Use one RX and one TX thread per connection
+- Acquire the runtime lock before calling `uerror`
+- Implement Lwt_hvsock.listen (untested)
+
 0.4 (2016-05-12)
 - Add an implementation of V1_LWT.FLOW
 
