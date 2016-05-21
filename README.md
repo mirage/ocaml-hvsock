@@ -1,6 +1,11 @@
 # OCaml bindings for Hyper-V AF_VSOCK
 
-These bindings allow Host <-> VM communication on Hyper-V systems.
+These bindings allow Host <-> VM communication on Hyper-V systems on both Linux
+and Windows.
+
+*Warning*: the `AF_HYPERV` patches for Linux are not yet merged and hence the
+definition of `AF_HYPERV` is not yet stable. If other address families are merged
+before this one then the value of `AF_HYPERV` will change!
 
 Please read [the API documentation](https://djs55.github.io/ocaml-hvsock/index.html).
 
