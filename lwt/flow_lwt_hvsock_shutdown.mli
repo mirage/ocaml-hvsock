@@ -24,3 +24,5 @@
 include Mirage_flow_s.SHUTDOWNABLE
 
 val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+
+val connect: Lwt_hvsock.t -> flow
