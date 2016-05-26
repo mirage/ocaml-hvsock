@@ -57,6 +57,23 @@ let read flow =
       Cstruct.blit_from_string buffer 0 result 0 n;
       return (`Ok result)
 
+let read_into flow buffer =
+  if flow.closed then return `Eof
+  else
+    let bytes = Bytes.make (Cstruct.len buffer) '\000' in
+    let rec loop ofs len =
+      if len = 0
+      then Lwt.return (`Ok ())
+      else
+        Lwt_hvsock.read flow.fd bytes ofs len
+        >>= function
+        | 0 ->
+          Lwt.return `Eof
+        | n ->
+          Cstruct.blit_from_string bytes ofs buffer ofs n;
+          loop (ofs + n) (len - n) in
+    loop 0 (Cstruct.len buffer)
+
 let really_write fd buf =
   let buffer = Cstruct.to_string buf in
   let rec loop ofs =
