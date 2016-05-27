@@ -59,7 +59,8 @@ let error_message = Unix.error_message
 
 type flow = {
   fd: Lwt_hvsock.t;
-  m: Lwt_mutex.t;
+  rlock: Lwt_mutex.t;
+  wlock: Lwt_mutex.t;
   read_buffer: Bytes.t;
   mutable leftover: (int * Bytes.t) option;
   mutable closed: bool;
@@ -71,10 +72,11 @@ let connect fd =
   let closed = false in
   let read_closed = false in
   let write_closed = false in
-  let m = Lwt_mutex.create () in
+  let rlock = Lwt_mutex.create () in
+  let wlock = Lwt_mutex.create () in
   let read_buffer = Bytes.make maxMsgSize '\000' in
   let leftover = None in
-  { fd; m; read_buffer; leftover; closed; read_closed; write_closed }
+  { fd; rlock; wlock; read_buffer; leftover; closed; read_closed; write_closed }
 
 (* Write a whole string to the fd, without any encapsulation *)
 let really_write fd buffer ofs len =
@@ -119,7 +121,7 @@ let shutdown_write flow =
   then Lwt.return ()
   else begin
     flow.write_closed <- true;
-    Lwt_mutex.with_lock flow.m
+    Lwt_mutex.with_lock flow.wlock
       (fun () ->
         really_write flow.fd Message.(marshal ShutdownWrite) 0 Message.sizeof
         >>= function
@@ -133,7 +135,7 @@ let shutdown_read flow =
   then Lwt.return ()
   else begin
     flow.read_closed <- true;
-    Lwt_mutex.with_lock flow.m
+    Lwt_mutex.with_lock flow.wlock
       (fun () ->
         really_write flow.fd Message.(marshal ShutdownRead) 0 Message.sizeof
         >>= function
@@ -148,7 +150,7 @@ let close flow =
     flow.closed <- true;
     flow.read_closed <- true;
     flow.write_closed <- true;
-    Lwt_mutex.with_lock flow.m
+    Lwt_mutex.with_lock flow.wlock
       (fun () ->
         really_write flow.fd Message.(marshal Close) 0 Message.sizeof
         >>= function
@@ -190,7 +192,7 @@ let write flow buf =
       then Lwt.return (`Ok ())
       else
         let this_batch = min len maxMsgSize in
-        Lwt_mutex.with_lock flow.m
+        Lwt_mutex.with_lock flow.wlock
           (fun () ->
             really_write flow.fd Message.(marshal (Data this_batch)) 0 Message.sizeof
             >>= function
@@ -242,7 +244,7 @@ let read flow =
     flow.leftover <- None;
     Lwt.return (`Ok result)
   | None ->
-    Lwt_mutex.with_lock flow.m
+    Lwt_mutex.with_lock flow.rlock
       (fun () ->
         read_next_chunk flow
         >>= function
@@ -258,7 +260,7 @@ let rec read_into flow buf =
   then Lwt.return (`Ok ())
   else match flow.leftover with
   | None ->
-    begin Lwt_mutex.with_lock flow.m
+    begin Lwt_mutex.with_lock flow.rlock
       (fun () ->
         read_next_chunk flow
         >>= function
