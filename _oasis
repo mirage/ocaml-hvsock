@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        hvsock
-Version:     0.5
+Version:     0.6
 Synopsis:    Hyper-V sockets
 Authors:     David Scott, Rolf Neugebauer
 License:     ISC
@@ -23,9 +23,9 @@ Library "hvsock_lwt"
   Path:               lwt
   Findlibname:        lwt
   Findlibparent:      hvsock
-  Modules:            Lwt_hvsock, Flow_lwt_hvsock
+  Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown
   BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes,
-    mirage-types.lwt, cstruct
+    mirage-types.lwt, cstruct, mirage-flow
 
 Document api
   Title:              Documentation and API reference

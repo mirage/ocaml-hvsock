@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2015 David Scott <dave.scott@unikernel.com>
+ * Copyright (C) 2015 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,8 +15,14 @@
  *
  *)
 
-include V1_LWT.FLOW
+(** Adds a layer of signalling over Hyper-V sockets to simulate unidirectional
+    shutdown. This implements the same protocol as:
 
-val connect: Lwt_hvsock.t -> flow
+    https://github.com/rneugeba/virtsock/tree/master/go/hvsock
+*)
+
+include Mirage_flow_s.SHUTDOWNABLE
 
 val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+
+val connect: Lwt_hvsock.t -> flow

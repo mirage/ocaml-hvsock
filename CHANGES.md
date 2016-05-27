@@ -1,3 +1,6 @@
+0.6 (2016-05-25)
+- Add a simple protocol with shutdown read,write and close
+
 0.5 (2016-05-21)
 - Bump Linux AF_HYPERV to 43
 - Use one RX and one TX thread per connection
