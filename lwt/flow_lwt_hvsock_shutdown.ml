@@ -15,6 +15,12 @@
  *
  *)
 
+let src =
+  let src = Logs.Src.create "flow_lwt_hvsock_shutdown" ~doc:"AF_HYPERV framed messages" in
+  Logs.Src.set_level src (Some Logs.Debug);
+  src
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (* On Windows 10 build 10586 larger maxMsgSize values work, but on
    newer builds it fails. It is unclear what the cause is... *)
@@ -93,8 +99,13 @@ let really_write fd buffer ofs len =
     (fun () ->
       loop ofs len
     ) (function
-      | Unix.Unix_error(Unix.EPIPE, _, _) -> Lwt.return `Eof
-      | e -> Lwt.fail e
+      (* ECONNRESET is common but other errors may be possible. Whatever the
+         error we should treat it as Eof. *)
+      | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
+        Lwt.return `Eof
+      | e ->
+        Log.err (fun f -> f "Lwt_hvsock.write: %s" (Printexc.to_string e));
+        Lwt.return `Eof
     )
 
 (* Read a whole string from the fd, without any encapsulation *)
@@ -112,8 +123,13 @@ let really_read fd buffer ofs len =
     (fun () ->
       loop ofs len
     ) (function
-      | Unix.Unix_error(Unix.EPIPE, _, _) -> Lwt.return `Eof
-      | e -> Lwt.fail e
+      (* ECONNRESET is common but other errors may be possible. Whatever the
+         error we should treat it as Eof. *)
+      | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
+        Lwt.return `Eof
+      | e ->
+        Log.err (fun f -> f "Lwt_hvsock.read: %s" (Printexc.to_string e));
+        Lwt.return `Eof
     )
 
 let shutdown_write flow =
