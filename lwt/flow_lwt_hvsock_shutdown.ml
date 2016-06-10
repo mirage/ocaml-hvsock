@@ -15,6 +15,12 @@
  *
  *)
 
+let src =
+  let src = Logs.Src.create "flow_lwt_hvsock_shutdown" ~doc:"AF_HYPERV framed messages" in
+  Logs.Src.set_level src (Some Logs.Debug);
+  src
+
+module Log = (val Logs.src_log src : Logs.LOG)
 
 (* On Windows 10 build 10586 larger maxMsgSize values work, but on
    newer builds it fails. It is unclear what the cause is... *)
@@ -93,8 +99,13 @@ let really_write fd buffer ofs len =
     (fun () ->
       loop ofs len
     ) (function
-      | Unix.Unix_error(Unix.EPIPE, _, _) -> Lwt.return `Eof
-      | e -> Lwt.fail e
+      (* ECONNRESET is common but other errors may be possible. Whatever the
+         error we should treat it as Eof. *)
+      | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
+        Lwt.return `Eof
+      | e ->
+        Log.err (fun f -> f "Lwt_hvsock.write: %s" (Printexc.to_string e));
+        Lwt.return `Eof
     )
 
 (* Read a whole string from the fd, without any encapsulation *)
@@ -112,8 +123,13 @@ let really_read fd buffer ofs len =
     (fun () ->
       loop ofs len
     ) (function
-      | Unix.Unix_error(Unix.EPIPE, _, _) -> Lwt.return `Eof
-      | e -> Lwt.fail e
+      (* ECONNRESET is common but other errors may be possible. Whatever the
+         error we should treat it as Eof. *)
+      | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
+        Lwt.return `Eof
+      | e ->
+        Log.err (fun f -> f "Lwt_hvsock.read: %s" (Printexc.to_string e));
+        Lwt.return `Eof
     )
 
 let shutdown_write flow =
@@ -150,34 +166,37 @@ let close flow =
     flow.closed <- true;
     flow.read_closed <- true;
     flow.write_closed <- true;
-    Lwt_mutex.with_lock flow.wlock
+    Lwt.finalize
       (fun () ->
-        really_write flow.fd Message.(marshal Close) 0 Message.sizeof
-        >>= function
-        | `Eof -> Lwt.return ()
-        | `Ok () ->
-          let header = Bytes.create Message.sizeof in
-          let payload = Bytes.create maxMsgSize in
-          let rec wait_for_close () =
-            really_read flow.fd header 0 Message.sizeof
+        Lwt_mutex.with_lock flow.wlock
+          (fun () ->
+            really_write flow.fd Message.(marshal Close) 0 Message.sizeof
             >>= function
             | `Eof -> Lwt.return ()
             | `Ok () ->
-              match Message.unmarshal header with
-              | Message.Close ->
-                Lwt.return ()
-              | Message.ShutdownRead
-              | Message.ShutdownWrite ->
-                wait_for_close ()
-              | Message.Data n ->
-                really_read flow.fd payload 0 n
+              let header = Bytes.create Message.sizeof in
+              let payload = Bytes.create maxMsgSize in
+              let rec wait_for_close () =
+                really_read flow.fd header 0 Message.sizeof
                 >>= function
                 | `Eof -> Lwt.return ()
-                | `Ok () -> wait_for_close () in
-          wait_for_close ()
+                | `Ok () ->
+                  match Message.unmarshal header with
+                  | Message.Close ->
+                    Lwt.return ()
+                  | Message.ShutdownRead
+                  | Message.ShutdownWrite ->
+                    wait_for_close ()
+                  | Message.Data n ->
+                    really_read flow.fd payload 0 n
+                    >>= function
+                    | `Eof -> Lwt.return ()
+                    | `Ok () -> wait_for_close () in
+              wait_for_close ()
+          )
+      ) (fun () ->
+          Lwt_hvsock.close flow.fd
       )
-    >>= fun () ->
-    Lwt_hvsock.close flow.fd
   | true ->
     Lwt.return ()
 
