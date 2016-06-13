@@ -20,7 +20,9 @@ open Lwt.Infix
 
 (* Workarounds:
    1. select() is not implemented so we can't use regular non-blocking I/O
-      i.e. we must use Lwt_preemptive
+      i.e. we must use first class threads. Note that Lwt_preemptive calls
+      can block if the thread pool fills up. We create our own threads per
+      connection to avoid this.
    2. connect() blocks forever instead of failing with ECONNREFUSED if the
       server is down when the client calls connect. We declare a 1s timeout
       and raise ECONNREFUSED ourselves.
