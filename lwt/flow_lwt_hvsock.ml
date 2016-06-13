@@ -15,6 +15,13 @@
  *
  *)
 
+let src =
+  let src = Logs.Src.create "flow_lwt_hvsock" ~doc:"AF_HYPERV flow" in
+  Logs.Src.set_level src (Some Logs.Debug);
+  src
+
+module Log = (val Logs.src_log src : Logs.LOG)
+
 open Lwt
 
 type 'a io = 'a Lwt.t
@@ -48,14 +55,20 @@ let read flow =
   if flow.closed then return `Eof
   else
     let buffer = Bytes.make flow.read_buffer_size '\000' in
-    Lwt_hvsock.read flow.fd buffer 0 (Bytes.length buffer)
-    >>= function
-    | 0 ->
-      return `Eof
-    | n ->
-      let result = Cstruct.create n in
-      Cstruct.blit_from_string buffer 0 result 0 n;
-      return (`Ok result)
+    Lwt.catch
+      (fun () ->
+        Lwt_hvsock.read flow.fd buffer 0 (Bytes.length buffer)
+        >>= function
+        | 0 ->
+          return `Eof
+        | n ->
+          let result = Cstruct.create n in
+          Cstruct.blit_from_string buffer 0 result 0 n;
+          return (`Ok result)
+      ) (fun e ->
+        Log.err (fun f -> f "Lwt_hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
+        return `Eof
+      )
 
 let read_into flow buffer =
   if flow.closed then return `Eof
@@ -72,7 +85,13 @@ let read_into flow buffer =
         | n ->
           Cstruct.blit_from_string bytes ofs buffer ofs n;
           loop (ofs + n) (len - n) in
-    loop 0 (Cstruct.len buffer)
+    Lwt.catch
+      (fun () ->
+        loop 0 (Cstruct.len buffer)
+      ) (fun e ->
+        Log.err (fun f -> f "Lwt_hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
+        return `Eof
+      )
 
 let really_write fd buf =
   let buffer = Cstruct.to_string buf in
@@ -91,7 +110,9 @@ let really_write fd buf =
       loop 0
     ) (function
       | Unix.Unix_error(Unix.EPIPE, _, _) -> return `Eof
-      | e -> fail e
+      | e ->
+        Log.err (fun f -> f "Lwt_hvsock.write raised %s: returning `Eof" (Printexc.to_string e)); 
+        return `Eof
     )
 
 let write flow buf =
