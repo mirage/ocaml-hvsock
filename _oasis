@@ -1,6 +1,6 @@
 OASISFormat: 0.3
 Name:        hvsock
-Version:     0.6
+Version:     0.7
 Synopsis:    Hyper-V sockets
 Authors:     David Scott, Rolf Neugebauer
 License:     ISC

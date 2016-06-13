@@ -1,3 +1,8 @@
+0.7 (2016-06-13)
+- Treat unexpected `read` or `write` errors as `Eof in `FLOW`
+- Treat unexpected `shutdown_read` and `shutdown_write` errors as `Eof`
+- Clarify/add/update copyright headers in source files
+
 0.6 (2016-05-25)
 - Add a simple protocol with shutdown read,write and close
 
