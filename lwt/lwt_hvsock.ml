@@ -1,9 +1,28 @@
+(*
+ * Copyright (C) 2016 Docker Inc
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *
+ *)
+
 open Hvsock
 open Lwt.Infix
 
 (* Workarounds:
    1. select() is not implemented so we can't use regular non-blocking I/O
-      i.e. we must use Lwt_preemptive
+      i.e. we must use first class threads. Note that Lwt_preemptive calls
+      can block if the thread pool fills up. We create our own threads per
+      connection to avoid this.
    2. connect() blocks forever instead of failing with ECONNREFUSED if the
       server is down when the client calls connect. We declare a 1s timeout
       and raise ECONNREFUSED ourselves.
