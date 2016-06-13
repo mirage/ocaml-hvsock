@@ -141,7 +141,9 @@ let shutdown_write flow =
       (fun () ->
         really_write flow.fd Message.(marshal ShutdownWrite) 0 Message.sizeof
         >>= function
-        | `Eof -> Lwt.fail End_of_file
+        | `Eof ->
+          Log.err (fun f -> f "Lwt_hvsock.shutdown_write: got Eof");
+          Lwt.return ()
         | `Ok () -> Lwt.return ()
       )
   end
@@ -155,7 +157,9 @@ let shutdown_read flow =
       (fun () ->
         really_write flow.fd Message.(marshal ShutdownRead) 0 Message.sizeof
         >>= function
-        | `Eof -> Lwt.fail End_of_file
+        | `Eof ->
+          Log.err (fun f -> f "Lwt_hvsock.shutdown_write: got Eof");
+          Lwt.return ()
         | `Ok () -> Lwt.return ()
       )
   end
