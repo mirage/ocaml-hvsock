@@ -28,6 +28,23 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
+module type MAIN = sig
+  val run_in_main: (unit -> 'a Lwt.t) -> 'a
+end
+
+module type HVSOCK = sig
+  type t
+  val create: unit -> t
+  val bind: t -> sockaddr -> unit
+  val listen: t -> int -> unit
+  val accept: t -> (t * sockaddr) Lwt.t
+  val connect: t -> sockaddr -> unit Lwt.t
+  val read: t -> Bytes.t -> int -> int -> int Lwt.t
+  val write: t -> Bytes.t -> int -> int -> int Lwt.t
+  val close: t -> unit Lwt.t
+end
+
+
 type ('a, 'b) r =
   | Ok of 'a
   | Error of 'b
@@ -42,6 +59,7 @@ type request = {
   result: int Lwt.u;
 }
 
+module Make(Time: V1_LWT.TIME)(Main: MAIN) = struct
 type t = {
   mutable fd: Unix.file_descr option;
   push_read_request: request option -> unit;
@@ -49,7 +67,7 @@ type t = {
 }
 
 let rec handle_requests blocking_op requests =
-  match Lwt_preemptive.run_in_main (fun () ->
+  match Main.run_in_main (fun () ->
     Lwt.catch
       (fun () -> Lwt_stream.next requests >>= fun x -> Lwt.return (Some x))
       (fun _ -> Lwt.return None)
@@ -61,7 +79,7 @@ let rec handle_requests blocking_op requests =
         Ok (blocking_op r.file_descr r.buf r.off r.len)
       with
       | e -> Error e in
-    Lwt_preemptive.run_in_main (fun () ->
+    Main.run_in_main (fun () ->
       match result with
       | Ok x -> Lwt.wakeup_later r.result x; Lwt.return_unit
       | Error e -> Lwt.wakeup_later_exn r.result e; Lwt.return_unit
@@ -79,7 +97,7 @@ let create () = make (create ())
 
 let detach f x =
   let stream, push = Lwt_stream.create () in
-  let return x = Lwt_preemptive.run_in_main (fun () ->
+  let return x = Main.run_in_main (fun () ->
     push (Some x);
     Lwt.return_unit
   ) in
@@ -128,7 +146,7 @@ let connect t addr = match t with
       >>= fun () ->
       Lwt.return true in
     let timeout_t =
-      Lwt_unix.sleep 1.
+      Time.sleep 1.
       >>= fun () ->
       Lwt.return false in
     Lwt.choose [ connect_t; timeout_t ]
@@ -154,3 +172,4 @@ let write t buf off len = match t with
     let request = { file_descr; buf; off; len; result } in
     push_write_request (Some request);
     t
+end

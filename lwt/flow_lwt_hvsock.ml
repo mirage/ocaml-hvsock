@@ -25,6 +25,10 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 open Lwt
 
+module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+
+module Hvsock = Lwt_hvsock.Make(Time)(Main)
+
 type 'a io = 'a Lwt.t
 
 type buffer = Cstruct.t
@@ -34,7 +38,7 @@ type error = Unix.error
 let error_message = Unix.error_message
 
 type flow = {
-  fd: Lwt_hvsock.t;
+  fd: Hvsock.t;
   read_buffer_size: int;
   mutable closed: bool;
 }
@@ -48,7 +52,7 @@ let close t =
   match t.closed with
   | false ->
     t.closed <- true;
-    Lwt_hvsock.close t.fd
+    Hvsock.close t.fd
   | true ->
     Lwt.return ()
 
@@ -58,7 +62,7 @@ let read flow =
     let buffer = Bytes.make flow.read_buffer_size '\000' in
     Lwt.catch
       (fun () ->
-        Lwt_hvsock.read flow.fd buffer 0 (Bytes.length buffer)
+        Hvsock.read flow.fd buffer 0 (Bytes.length buffer)
         >>= function
         | 0 ->
           return `Eof
@@ -67,7 +71,7 @@ let read flow =
           Cstruct.blit_from_string buffer 0 result 0 n;
           return (`Ok result)
       ) (fun e ->
-        Log.err (fun f -> f "Lwt_hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
+        Log.err (fun f -> f "Hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
         return `Eof
       )
 
@@ -79,7 +83,7 @@ let read_into flow buffer =
       if len = 0
       then Lwt.return (`Ok ())
       else
-        Lwt_hvsock.read flow.fd bytes ofs len
+        Hvsock.read flow.fd bytes ofs len
         >>= function
         | 0 ->
           Lwt.return `Eof
@@ -90,7 +94,7 @@ let read_into flow buffer =
       (fun () ->
         loop 0 (Cstruct.len buffer)
       ) (fun e ->
-        Log.err (fun f -> f "Lwt_hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
+        Log.err (fun f -> f "Hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
         return `Eof
       )
 
@@ -101,7 +105,7 @@ let really_write fd buf =
     then Lwt.return (`Ok ())
     else
       let remaining = Bytes.length buffer - ofs in
-      Lwt_hvsock.write fd buffer ofs remaining
+      Hvsock.write fd buffer ofs remaining
       >>= function
       | 0 -> Lwt.return (`Eof)
       | n ->
@@ -112,7 +116,7 @@ let really_write fd buf =
     ) (function
       | Unix.Unix_error(Unix.EPIPE, _, _) -> return `Eof
       | e ->
-        Log.err (fun f -> f "Lwt_hvsock.write raised %s: returning `Eof" (Printexc.to_string e)); 
+        Log.err (fun f -> f "Hvsock.write raised %s: returning `Eof" (Printexc.to_string e));
         return `Eof
     )
 
@@ -131,3 +135,4 @@ let writev flow bufs =
         | `Ok () -> loop xs
         | `Eof -> Lwt.return `Eof in
   loop bufs
+end
