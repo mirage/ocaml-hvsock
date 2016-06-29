@@ -16,8 +16,12 @@
  *
  *)
 
-include V1_LWT.FLOW
+module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN): sig
+  include V1_LWT.FLOW
 
-val connect: Lwt_hvsock.t -> flow
+  module Hvsock: Lwt_hvsock.HVSOCK
 
-val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+  val connect: Hvsock.t -> flow
+
+  val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+end

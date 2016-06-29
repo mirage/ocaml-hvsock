@@ -17,31 +17,42 @@
 
 open Hvsock
 
-type t
-(** A Hyper-V socket *)
+module type MAIN = sig
+  val run_in_main: (unit -> 'a Lwt.t) -> 'a
+  (** Run the given closure in the main thread *)
+end
 
-val create: unit -> t
-(** [create ()] creates an unbound AF_HVSOCK socket *)
+module type HVSOCK = sig
+  type t
+  (** A Hyper-V socket *)
 
-val bind: t -> sockaddr -> unit
-(** [bind t sockaddr] binds [socket] to [sockaddr] *)
+  val create: unit -> t
+  (** [create ()] creates an unbound AF_HVSOCK socket *)
 
-val listen: t -> int -> unit
-(** [listen t queue] *)
+  val bind: t -> sockaddr -> unit
+  (** [bind t sockaddr] binds [socket] to [sockaddr] *)
 
-val accept: t -> (t * sockaddr) Lwt.t
-(** [accept t] accepts a single connection *)
+  val listen: t -> int -> unit
+  (** [listen t queue] *)
 
-val connect: t -> sockaddr -> unit Lwt.t
-(** [connect t sockaddr] connects to a remote partition *)
+  val accept: t -> (t * sockaddr) Lwt.t
+  (** [accept t] accepts a single connection *)
 
-val read: t -> Bytes.t -> int -> int -> int Lwt.t
-(** [read t buf offset len] reads up to [len] bytes from [t] into [buf]
-    starting at offset [offset] *)
+  val connect: t -> sockaddr -> unit Lwt.t
+  (** [connect t sockaddr] connects to a remote partition *)
 
-val write: t -> Bytes.t -> int -> int -> int Lwt.t
-(** [write t buf offset len] writes up to [len] bytes from [t] into [buf]
-    starting at offset [offset] *)
+  val read: t -> Bytes.t -> int -> int -> int Lwt.t
+  (** [read t buf offset len] reads up to [len] bytes from [t] into [buf]
+      starting at offset [offset] *)
 
-val close: t -> unit Lwt.t
-(** [close t] closes a socket *)
+  val write: t -> Bytes.t -> int -> int -> int Lwt.t
+  (** [write t buf offset len] writes up to [len] bytes from [t] into [buf]
+      starting at offset [offset] *)
+
+  val close: t -> unit Lwt.t
+  (** [close t] closes a socket *)
+end
+
+module Make(Time: V1_LWT.TIME)(Main: MAIN): HVSOCK
+(** Create an HVSOCK implementation given the ability to sleep and the ability
+    to run code in the main Lwt thread *)

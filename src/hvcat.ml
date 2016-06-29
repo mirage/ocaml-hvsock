@@ -56,31 +56,37 @@ let echo =
 
 let buffer_size = 4096
 
+module Time = struct
+  type 'a io = 'a Lwt.t
+  let sleep = Lwt_unix.sleep
+end
+module Hv = Lwt_hvsock.Make(Time)(Lwt_preemptive)
+
 let make_channels t =
   let read_buffer = Bytes.make buffer_size '\000' in
   let read b off len =
-    Lwt_hvsock.read t read_buffer 0 len
+    Hv.read t read_buffer 0 len
     >>= fun n ->
     Lwt_bytes.blit_from_bytes read_buffer 0 b off len;
     Lwt.return n in
   let write_buffer = Bytes.make buffer_size '\000' in
   let write b off len =
     Lwt_bytes.blit_to_bytes b off write_buffer 0 len;
-    Lwt_hvsock.write t write_buffer 0 len in
+    Hv.write t write_buffer 0 len in
   let ic = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.input read in
   let oc = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.output write in
   ic, oc
 
 let rec connect vmid serviceid =
-  let fd = Lwt_hvsock.create () in
+  let fd = Hv.create () in
   Lwt.catch
     (fun () ->
-      Lwt_hvsock.connect fd { Hvsock.vmid; serviceid }
+      Hv.connect fd { Hvsock.vmid; serviceid }
       >>= fun () ->
       Lwt.return fd
     ) (fun e ->
       Printf.fprintf stderr "connect raised %s: sleep 1s and retrying\n%!" (Printexc.to_string e);
-      Lwt_hvsock.close fd
+      Hv.close fd
       >>= fun () ->
       Lwt_unix.sleep 1.
       >>= fun () ->
@@ -95,39 +101,39 @@ let client vmid serviceid =
     let ic, oc = make_channels fd in
     proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
     >>= fun () ->
-    Lwt_hvsock.close fd
+    Hv.close fd
   with
   | Unix.Unix_error(Unix.ENOENT, _, _) ->
     Printf.fprintf stderr "Server not found (ENOENT)\n";
     Lwt.return ()
 
 let one_shot_server vmid serviceid =
-  let s = Lwt_hvsock.create () in
-  Lwt_hvsock.bind s { Hvsock.vmid; serviceid };
-  Lwt_hvsock.listen s 1;
-  Lwt_hvsock.accept s
+  let s = Hv.create () in
+  Hv.bind s { Hvsock.vmid; serviceid };
+  Hv.listen s 1;
+  Hv.accept s
   >>= fun (client, { Hvsock.vmid; serviceid }) ->
   Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.string_of_vmid vmid) serviceid;
   let ic, oc = make_channels client in
   proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
   >>= fun () ->
-  Lwt_hvsock.close client
+  Hv.close client
   >>= fun () ->
-  Lwt_hvsock.close s
+  Hv.close s
 
 let echo_server vmid serviceid =
-  let s = Lwt_hvsock.create () in
-  Lwt_hvsock.bind s { Hvsock.vmid; serviceid };
-  Lwt_hvsock.listen s 5;
+  let s = Hv.create () in
+  Hv.bind s { Hvsock.vmid; serviceid };
+  Hv.listen s 5;
   let rec loop () =
-    Lwt_hvsock.accept s
+    Hv.accept s
     >>= fun (fd, { Hvsock.vmid; serviceid }) ->
     Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.string_of_vmid vmid) serviceid;
     Lwt.async (fun () ->
       let ic, oc = make_channels fd in
       proxy buffer_size (ic, oc) (ic, oc)
       >>= fun () ->
-      Lwt_hvsock.close fd
+      Hv.close fd
       >>= fun () ->
       Printf.fprintf stderr "Disconnected\n%!";
       Lwt.return ()
@@ -135,7 +141,7 @@ let echo_server vmid serviceid =
     loop () in
   loop ()
   >>= fun () ->
-  Lwt_hvsock.close s
+  Hv.close s
 
 let main listen echo vmid serviceid =
   let vmid = match vmid with

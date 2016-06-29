@@ -55,6 +55,10 @@ end
 
 open Lwt.Infix
 
+module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+
+module Hvsock = Lwt_hvsock.Make(Time)(Main)
+
 type 'a io = 'a Lwt.t
 
 type buffer = Cstruct.t
@@ -64,7 +68,7 @@ type error = Unix.error
 let error_message = Unix.error_message
 
 type flow = {
-  fd: Lwt_hvsock.t;
+  fd: Hvsock.t;
   rlock: Lwt_mutex.t;
   wlock: Lwt_mutex.t;
   read_buffer: Bytes.t;
@@ -90,7 +94,7 @@ let really_write fd buffer ofs len =
     if len = 0
     then Lwt.return (`Ok ())
     else
-      Lwt_hvsock.write fd buffer ofs len
+      Hvsock.write fd buffer ofs len
       >>= function
       | 0 -> Lwt.return (`Eof)
       | n ->
@@ -104,7 +108,7 @@ let really_write fd buffer ofs len =
       | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
         Lwt.return `Eof
       | e ->
-        Log.err (fun f -> f "Lwt_hvsock.write: %s" (Printexc.to_string e));
+        Log.err (fun f -> f "Hvsock.write: %s" (Printexc.to_string e));
         Lwt.return `Eof
     )
 
@@ -114,7 +118,7 @@ let really_read fd buffer ofs len =
     if len = 0
     then Lwt.return (`Ok ())
     else
-      Lwt_hvsock.read fd buffer ofs len
+      Hvsock.read fd buffer ofs len
       >>= function
       | 0 -> Lwt.return (`Eof)
       | n ->
@@ -128,7 +132,7 @@ let really_read fd buffer ofs len =
       | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
         Lwt.return `Eof
       | e ->
-        Log.err (fun f -> f "Lwt_hvsock.read: %s" (Printexc.to_string e));
+        Log.err (fun f -> f "Hvsock.read: %s" (Printexc.to_string e));
         Lwt.return `Eof
     )
 
@@ -142,7 +146,7 @@ let shutdown_write flow =
         really_write flow.fd Message.(marshal ShutdownWrite) 0 Message.sizeof
         >>= function
         | `Eof ->
-          Log.err (fun f -> f "Lwt_hvsock.shutdown_write: got Eof");
+          Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
           Lwt.return ()
         | `Ok () -> Lwt.return ()
       )
@@ -158,7 +162,7 @@ let shutdown_read flow =
         really_write flow.fd Message.(marshal ShutdownRead) 0 Message.sizeof
         >>= function
         | `Eof ->
-          Log.err (fun f -> f "Lwt_hvsock.shutdown_write: got Eof");
+          Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
           Lwt.return ()
         | `Ok () -> Lwt.return ()
       )
@@ -199,7 +203,7 @@ let close flow =
               wait_for_close ()
           )
       ) (fun () ->
-          Lwt_hvsock.close flow.fd
+          Hvsock.close flow.fd
       )
   | true ->
     Lwt.return ()
@@ -314,3 +318,4 @@ let writev flow bufs =
       | `Eof -> Lwt.return `Eof
       | `Ok () -> loop xs in
   loop bufs
+end
