@@ -39,11 +39,18 @@ module type HVSOCK = sig
   val listen: t -> int -> unit
   val accept: t -> (t * sockaddr) Lwt.t
   val connect: t -> sockaddr -> unit Lwt.t
-  val read: t -> Bytes.t -> int -> int -> int Lwt.t
-  val write: t -> Bytes.t -> int -> int -> int Lwt.t
+  val read: t -> Cstruct.t -> int Lwt.t
+  val write: t -> Cstruct.t -> int Lwt.t
   val close: t -> unit Lwt.t
 end
 
+type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_ba_recv"
+external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_ba_send"
+
+let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
+let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 
 type ('a, 'b) r =
   | Ok of 'a
@@ -53,9 +60,7 @@ type result = (int, exn) r
 
 type request = {
   file_descr: Unix.file_descr;
-  buf: string;
-  off: int;
-  len: int;
+  buf: Cstruct.t;
   result: int Lwt.u;
 }
 
@@ -76,7 +81,7 @@ let rec handle_requests blocking_op requests =
   | Some r ->
     let result =
       try
-        Ok (blocking_op r.file_descr r.buf r.off r.len)
+        Ok (blocking_op r.file_descr r.buf)
       with
       | e -> Error e in
     Main.run_in_main (fun () ->
@@ -89,8 +94,8 @@ let rec handle_requests blocking_op requests =
 let make fd =
   let read_requests, push_read_request = Lwt_stream.create () in
   let write_requests, push_write_request = Lwt_stream.create () in
-  let _reader = Thread.create (handle_requests Unix.read) read_requests in
-  let _writer = Thread.create (handle_requests Unix.write) write_requests in
+  let _reader = Thread.create (handle_requests cstruct_read) read_requests in
+  let _writer = Thread.create (handle_requests cstruct_write) write_requests in
   { fd = Some fd; push_read_request; push_write_request; }
 
 let create () = make (create ())
@@ -157,19 +162,19 @@ let connect t addr = match t with
       Lwt.fail (Unix.Unix_error(Unix.ECONNREFUSED, "connect", ""))
     end else Lwt.return_unit
 
-let read t buf off len = match t with
+let read t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
   | { fd = Some file_descr; push_read_request } ->
     let t, result = Lwt.task () in
-    let request = { file_descr; buf; off; len; result } in
+    let request = { file_descr; buf; result } in
     push_read_request (Some request);
     t
 
-let write t buf off len = match t with
+let write t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
   | { fd = Some file_descr; push_write_request } ->
     let t, result = Lwt.task () in
-    let request = { file_descr; buf; off; len; result } in
+    let request = { file_descr; buf; result } in
     push_write_request (Some request);
     t
 end

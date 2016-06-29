@@ -63,16 +63,16 @@ end
 module Hv = Lwt_hvsock.Make(Time)(Lwt_preemptive)
 
 let make_channels t =
-  let read_buffer = Bytes.make buffer_size '\000' in
+  let read_buffer = Cstruct.create buffer_size in
   let read b off len =
-    Hv.read t read_buffer 0 len
+    Hv.read t read_buffer
     >>= fun n ->
-    Lwt_bytes.blit_from_bytes read_buffer 0 b off len;
+    Lwt_bytes.blit read_buffer.Cstruct.buffer 0 b off n;
     Lwt.return n in
-  let write_buffer = Bytes.make buffer_size '\000' in
+  let write_buffer = Cstruct.create buffer_size in
   let write b off len =
-    Lwt_bytes.blit_to_bytes b off write_buffer 0 len;
-    Hv.write t write_buffer 0 len in
+    Lwt_bytes.blit b off write_buffer.Cstruct.buffer 0 len;
+    Hv.write t write_buffer in
   let ic = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.input read in
   let oc = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.output write in
   ic, oc

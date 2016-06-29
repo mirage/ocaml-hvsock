@@ -26,6 +26,7 @@ Library "hvsock_lwt"
   Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown
   BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes,
     mirage-types.lwt, cstruct, mirage-flow, logs
+  CSources:           lwt_hvsock_stubs.c
 
 Document api
   Title:              Documentation and API reference
