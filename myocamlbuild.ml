@@ -1,7 +1,7 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 015157482a862364a7d6a14d163eec88) *)
+(* DO NOT EDIT (digest: 349939bdd4758a773b7f65843b34bc4c) *)
 module OASISGettext = struct
-(* # 22 "src/oasis/OASISGettext.ml" *)
+(* # 22 "src/oasis\\OASISGettext.ml" *)
 
 
   let ns_ str =
@@ -30,7 +30,7 @@ module OASISGettext = struct
 end
 
 module OASISString = struct
-(* # 22 "src/oasis/OASISString.ml" *)
+(* # 22 "src/oasis\\OASISString.ml" *)
 
 
   (** Various string utilities.
@@ -187,10 +187,32 @@ module OASISString = struct
     else
       s
 
+  let exists f str =
+    let rec iter i =
+      if i < 0 then
+        false
+      else if f str.[i] then
+        true
+      else
+        iter (pred i)
+    in
+      iter (String.length str - 1)
+
+  let is_digit c =
+    '0' <= c && c <= '9'
+   
+  let is_alpha c =
+    ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')
+
+  let is_whitespace =
+    function
+      | ' ' | '\r' | '\n' | '\t' -> true
+      |  _  -> false
+
 end
 
 module OASISExpr = struct
-(* # 22 "src/oasis/OASISExpr.ml" *)
+(* # 22 "src/oasis\\OASISExpr.ml" *)
 
 
 
@@ -289,9 +311,9 @@ module OASISExpr = struct
 end
 
 
-# 292 "myocamlbuild.ml"
+# 314 "myocamlbuild.ml"
 module BaseEnvLight = struct
-(* # 22 "src/base/BaseEnvLight.ml" *)
+(* # 22 "src/base\\BaseEnvLight.ml" *)
 
 
   module MapString = Map.Make(String)
@@ -394,9 +416,9 @@ module BaseEnvLight = struct
 end
 
 
-# 397 "myocamlbuild.ml"
+# 419 "myocamlbuild.ml"
 module MyOCamlbuildFindlib = struct
-(* # 22 "src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml" *)
+(* # 22 "src/plugins/ocamlbuild\\MyOCamlbuildFindlib.ml" *)
 
 
   (** OCamlbuild extension, copied from
@@ -474,7 +496,9 @@ module MyOCamlbuildFindlib = struct
     with Not_found -> s
 
   (* ocamlfind command *)
-  let ocamlfind x = S[Sh (exec_from_conf "ocamlfind"); x]
+  let ocamlfind x = S[Sh (
+    Ocamlbuild_pack.Shell.quote_filename_if_needed
+      (exec_from_conf "ocamlfind") ); x]
 
   (* This lists all supported packages. *)
   let find_packages () =
@@ -586,7 +610,7 @@ module MyOCamlbuildFindlib = struct
 end
 
 module MyOCamlbuildBase = struct
-(* # 22 "src/plugins/ocamlbuild/MyOCamlbuildBase.ml" *)
+(* # 22 "src/plugins/ocamlbuild\\MyOCamlbuildBase.ml" *)
 
 
   (** Base functions for writing myocamlbuild.ml
@@ -607,7 +631,7 @@ module MyOCamlbuildBase = struct
   type tag = string
 
 
-(* # 62 "src/plugins/ocamlbuild/MyOCamlbuildBase.ml" *)
+(* # 62 "src/plugins/ocamlbuild\\MyOCamlbuildBase.ml" *)
 
 
   type t =
@@ -763,13 +787,13 @@ module MyOCamlbuildBase = struct
 end
 
 
-# 766 "myocamlbuild.ml"
+# 790 "myocamlbuild.ml"
 open Ocamlbuild_plugin;;
 let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
        [("hvsock", ["lib"], []); ("hvsock_lwt", ["lwt"], [])];
-     lib_c = [("hvsock", "lib", ["lib/compat.h"])];
+     lib_c = [("hvsock", "lib", ["lib/compat.h"]); ("hvsock_lwt", "lwt", [])];
      flags = [];
      includes =
        [("src", ["lib"; "lwt"]); ("lwt", ["lib"]); ("lib_test", ["lib"])]
@@ -780,6 +804,6 @@ let conf = {MyOCamlbuildFindlib.no_automatic_syntax = false}
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default conf package_default;;
 
-# 784 "myocamlbuild.ml"
+# 808 "myocamlbuild.ml"
 (* OASIS_STOP *)
 Ocamlbuild_plugin.dispatch dispatch_default;;
