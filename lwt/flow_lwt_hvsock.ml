@@ -44,7 +44,7 @@ type flow = {
 }
 
 let connect fd =
-  let read_buffer_size = 1024 in
+  let read_buffer_size = 4 * 1024 in
   let closed = false in
   { fd; read_buffer_size; closed }
 
