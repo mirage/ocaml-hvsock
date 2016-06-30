@@ -1,3 +1,8 @@
+0.8 (2016-06-30)
+- Increase flow buffer size to 4KiB from 1KiB
+- Use Cstruct.t internally rather than marshalling to/from Byte.t
+- Functorise to make compatible with Uwt as well as Lwt_unix
+
 0.7 (2016-06-13)
 - Treat unexpected `read` or `write` errors as `Eof in `FLOW`
 - Treat unexpected `shutdown_read` and `shutdown_write` errors as `Eof`
