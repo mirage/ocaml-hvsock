@@ -40,13 +40,15 @@ let error_message = Unix.error_message
 type flow = {
   fd: Hvsock.t;
   read_buffer_size: int;
+  mutable read_buffer: Cstruct.t;
   mutable closed: bool;
 }
 
 let connect fd =
   let read_buffer_size = 4 * 1024 in
+  let read_buffer = Cstruct.create read_buffer_size in
   let closed = false in
-  { fd; read_buffer_size; closed }
+  { fd; read_buffer_size; read_buffer; closed }
 
 let close t =
   match t.closed with
@@ -58,61 +60,58 @@ let close t =
 
 let read flow =
   if flow.closed then return `Eof
-  else
-    let buffer = Bytes.make flow.read_buffer_size '\000' in
+  else begin
+    (if Cstruct.len flow.read_buffer = 0 then flow.read_buffer <- Cstruct.create flow.read_buffer_size);
     Lwt.catch
       (fun () ->
-        Hvsock.read flow.fd buffer 0 (Bytes.length buffer)
+        Hvsock.read flow.fd flow.read_buffer
         >>= function
         | 0 ->
           return `Eof
         | n ->
-          let result = Cstruct.create n in
-          Cstruct.blit_from_string buffer 0 result 0 n;
+          let result = Cstruct.sub flow.read_buffer 0 n in
+          flow.read_buffer <- Cstruct.shift flow.read_buffer n;
           return (`Ok result)
       ) (fun e ->
         Log.err (fun f -> f "Hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
         return `Eof
       )
+  end
 
 let read_into flow buffer =
   if flow.closed then return `Eof
   else
-    let bytes = Bytes.make (Cstruct.len buffer) '\000' in
-    let rec loop ofs len =
-      if len = 0
+    let rec loop remaining =
+      if Cstruct.len remaining = 0
       then Lwt.return (`Ok ())
       else
-        Hvsock.read flow.fd bytes ofs len
+        Hvsock.read flow.fd buffer
         >>= function
         | 0 ->
           Lwt.return `Eof
         | n ->
-          Cstruct.blit_from_string bytes ofs buffer ofs n;
-          loop (ofs + n) (len - n) in
+          loop (Cstruct.shift remaining n) in
     Lwt.catch
       (fun () ->
-        loop 0 (Cstruct.len buffer)
+        loop buffer
       ) (fun e ->
         Log.err (fun f -> f "Hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
         return `Eof
       )
 
 let really_write fd buf =
-  let buffer = Cstruct.to_string buf in
-  let rec loop ofs =
-    if ofs >= (Bytes.length buffer)
+  let rec loop remaining =
+    if Cstruct.len remaining = 0
     then Lwt.return (`Ok ())
     else
-      let remaining = Bytes.length buffer - ofs in
-      Hvsock.write fd buffer ofs remaining
+      Hvsock.write fd remaining
       >>= function
       | 0 -> Lwt.return (`Eof)
       | n ->
-        loop (ofs + n) in
+        loop (Cstruct.shift remaining n) in
   Lwt.catch
     (fun () ->
-      loop 0
+      loop buf
     ) (function
       | Unix.Unix_error(Unix.EPIPE, _, _) -> return `Eof
       | e ->

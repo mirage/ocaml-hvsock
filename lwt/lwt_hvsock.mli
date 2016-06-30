@@ -41,13 +41,14 @@ module type HVSOCK = sig
   val connect: t -> sockaddr -> unit Lwt.t
   (** [connect t sockaddr] connects to a remote partition *)
 
-  val read: t -> Bytes.t -> int -> int -> int Lwt.t
-  (** [read t buf offset len] reads up to [len] bytes from [t] into [buf]
-      starting at offset [offset] *)
+  val read: t -> Cstruct.t -> int Lwt.t
+  (** [read t buf] reads as many bytes as available into [buf] returning
+      the number of bytes read. *)
 
-  val write: t -> Bytes.t -> int -> int -> int Lwt.t
-  (** [write t buf offset len] writes up to [len] bytes from [t] into [buf]
-      starting at offset [offset] *)
+  val write: t -> Cstruct.t -> int Lwt.t
+  (** [write t buf] writes as many bytes from [buf] to [t] as will currently
+      fit inside [t]'s internal buffer, and return the number of bytes
+      written *)
 
   val close: t -> unit Lwt.t
   (** [close t] closes a socket *)

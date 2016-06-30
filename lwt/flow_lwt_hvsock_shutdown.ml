@@ -36,17 +36,15 @@ module Message = struct
 
   let sizeof = 4
 
-  let marshal x =
-    let results = Bytes.create sizeof in
-    EndianString.LittleEndian.set_int32 results 0 (match x with
+  let marshal x rest =
+    Cstruct.LE.set_uint32 rest 0 (match x with
       | ShutdownRead  -> 0xdeadbeefl
       | ShutdownWrite -> 0xbeefdeadl
       | Close         -> 0xdeaddeadl
       | Data len      -> Int32.of_int len
-    );
-    results
+    )
   let unmarshal x =
-    match EndianString.LittleEndian.get_int32 x 0 with
+    match Cstruct.LE.get_uint32 x 0 with
       | 0xdeadbeefl -> ShutdownRead
       | 0xbeefdeadl -> ShutdownWrite
       | 0xdeaddeadl -> Close
@@ -71,8 +69,10 @@ type flow = {
   fd: Hvsock.t;
   rlock: Lwt_mutex.t;
   wlock: Lwt_mutex.t;
+  read_header_buffer: Cstruct.t;
+  write_header_buffer: Cstruct.t;
   read_buffer: Bytes.t;
-  mutable leftover: (int * Bytes.t) option;
+  mutable leftover: Cstruct.t;
   mutable closed: bool;
   mutable read_closed: bool;
   mutable write_closed: bool;
@@ -84,24 +84,27 @@ let connect fd =
   let write_closed = false in
   let rlock = Lwt_mutex.create () in
   let wlock = Lwt_mutex.create () in
+  let read_header_buffer = Cstruct.create Message.sizeof in
+  let write_header_buffer = Cstruct.create Message.sizeof in
   let read_buffer = Bytes.make maxMsgSize '\000' in
-  let leftover = None in
-  { fd; rlock; wlock; read_buffer; leftover; closed; read_closed; write_closed }
+  let leftover = Cstruct.create 0 in
+  { fd; rlock; wlock; read_header_buffer; write_header_buffer;
+    read_buffer; leftover; closed; read_closed; write_closed }
 
-(* Write a whole string to the fd, without any encapsulation *)
-let really_write fd buffer ofs len =
-  let rec loop ofs len =
-    if len = 0
+(* Write a whole buffer to the fd, without any encapsulation *)
+let really_write fd buffer =
+  let rec loop remaining =
+    if Cstruct.len remaining = 0
     then Lwt.return (`Ok ())
     else
-      Hvsock.write fd buffer ofs len
+      Hvsock.write fd remaining
       >>= function
       | 0 -> Lwt.return (`Eof)
       | n ->
-        loop (ofs + n) (len - n) in
+        loop (Cstruct.shift remaining n) in
   Lwt.catch
     (fun () ->
-      loop ofs len
+      loop buffer
     ) (function
       (* ECONNRESET is common but other errors may be possible. Whatever the
          error we should treat it as Eof. *)
@@ -112,20 +115,20 @@ let really_write fd buffer ofs len =
         Lwt.return `Eof
     )
 
-(* Read a whole string from the fd, without any encapsulation *)
-let really_read fd buffer ofs len =
-  let rec loop ofs len =
-    if len = 0
+(* Read a whole buffer from the fd, without any encapsulation *)
+let really_read fd buffer =
+  let rec loop remaining =
+    if Cstruct.len remaining = 0
     then Lwt.return (`Ok ())
     else
-      Hvsock.read fd buffer ofs len
+      Hvsock.read fd remaining
       >>= function
       | 0 -> Lwt.return (`Eof)
       | n ->
-        loop (ofs + n) (len - n) in
+        loop (Cstruct.shift remaining n) in
   Lwt.catch
     (fun () ->
-      loop ofs len
+      loop buffer
     ) (function
       (* ECONNRESET is common but other errors may be possible. Whatever the
          error we should treat it as Eof. *)
@@ -143,7 +146,8 @@ let shutdown_write flow =
     flow.write_closed <- true;
     Lwt_mutex.with_lock flow.wlock
       (fun () ->
-        really_write flow.fd Message.(marshal ShutdownWrite) 0 Message.sizeof
+        Message.(marshal ShutdownWrite flow.write_header_buffer);
+        really_write flow.fd flow.write_header_buffer
         >>= function
         | `Eof ->
           Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
@@ -159,7 +163,8 @@ let shutdown_read flow =
     flow.read_closed <- true;
     Lwt_mutex.with_lock flow.wlock
       (fun () ->
-        really_write flow.fd Message.(marshal ShutdownRead) 0 Message.sizeof
+        Message.(marshal ShutdownRead flow.write_header_buffer);
+        really_write flow.fd flow.write_header_buffer
         >>= function
         | `Eof ->
           Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
@@ -178,14 +183,15 @@ let close flow =
       (fun () ->
         Lwt_mutex.with_lock flow.wlock
           (fun () ->
-            really_write flow.fd Message.(marshal Close) 0 Message.sizeof
+            Message.(marshal Close flow.write_header_buffer);
+            really_write flow.fd flow.write_header_buffer
             >>= function
             | `Eof -> Lwt.return ()
             | `Ok () ->
-              let header = Bytes.create Message.sizeof in
-              let payload = Bytes.create maxMsgSize in
+              let header = Cstruct.create Message.sizeof in
+              let payload = Cstruct.create maxMsgSize in
               let rec wait_for_close () =
-                really_read flow.fd header 0 Message.sizeof
+                really_read flow.fd header
                 >>= function
                 | `Eof -> Lwt.return ()
                 | `Ok () ->
@@ -196,7 +202,7 @@ let close flow =
                   | Message.ShutdownWrite ->
                     wait_for_close ()
                   | Message.Data n ->
-                    really_read flow.fd payload 0 n
+                    really_read flow.fd payload
                     >>= function
                     | `Eof -> Lwt.return ()
                     | `Ok () -> wait_for_close () in
@@ -210,39 +216,39 @@ let close flow =
 
 (* Write a whole buffer to the fd, in chunks according to the maximum message
    size *)
-let write flow buf =
+let write flow buffer =
   if flow.closed || flow.write_closed then Lwt.return `Eof
   else
-    let buffer = Cstruct.to_string buf in
-    let rec loop ofs len =
+    let rec loop remaining =
+      let len = Cstruct.len remaining in
       if len = 0
       then Lwt.return (`Ok ())
       else
         let this_batch = min len maxMsgSize in
         Lwt_mutex.with_lock flow.wlock
           (fun () ->
-            really_write flow.fd Message.(marshal (Data this_batch)) 0 Message.sizeof
+            Message.(marshal (Data this_batch) flow.write_header_buffer);
+            really_write flow.fd flow.write_header_buffer
             >>= function
             | `Eof -> Lwt.return `Eof
             | `Ok () ->
-              really_write flow.fd buffer ofs this_batch
+              really_write flow.fd buffer
           )
         >>= function
         | `Eof -> Lwt.return `Eof
         | `Ok () ->
-          loop (ofs + this_batch) (len - this_batch) in
-    loop 0 (Bytes.length buffer)
+          loop (Cstruct.shift remaining this_batch) in
+    loop buffer
 
 let read_next_chunk flow =
   if flow.closed || flow.read_closed then Lwt.return `Eof
   else
     let rec loop () =
-      let header = Bytes.create Message.sizeof in
-      really_read flow.fd header 0 Message.sizeof
+      really_read flow.fd flow.read_header_buffer
       >>= function
       | `Eof -> Lwt.return `Eof
       | `Ok () ->
-        match Message.unmarshal header with
+        match Message.unmarshal flow.read_header_buffer with
         | Message.ShutdownWrite ->
           flow.read_closed <- true;
           Lwt.return `Eof
@@ -254,8 +260,8 @@ let read_next_chunk flow =
           flow.write_closed <- true;
           loop ()
         | Message.Data n ->
-          let payload = Bytes.create n in
-          really_read flow.fd payload 0 n
+          let payload = Cstruct.create n in
+          really_read flow.fd payload
           >>= function
           | `Eof -> Lwt.return `Eof
           | `Ok () ->
@@ -263,51 +269,42 @@ let read_next_chunk flow =
     loop ()
 
 let read flow =
-  match flow.leftover with
-  | Some (consumed_last_time, payload) ->
-    let to_consume = Bytes.length payload - consumed_last_time in
-    let result = Cstruct.create to_consume in
-    Cstruct.blit_from_string payload consumed_last_time result 0 to_consume;
-    flow.leftover <- None;
-    Lwt.return (`Ok result)
-  | None ->
+  if Cstruct.len flow.leftover = 0 then begin
     Lwt_mutex.with_lock flow.rlock
       (fun () ->
         read_next_chunk flow
-        >>= function
-        | `Eof -> Lwt.return `Eof
-        | `Ok payload ->
-          let result = Cstruct.create (Bytes.length payload) in
-          Cstruct.blit_from_string payload 0 result 0 (Bytes.length payload);
-          Lwt.return (`Ok result)
       )
+  end else begin
+    let result = flow.leftover in
+    flow.leftover <- Cstruct.create 0;
+    Lwt.return (`Ok result)
+  end
 
 let rec read_into flow buf =
   if Cstruct.len buf = 0
   then Lwt.return (`Ok ())
-  else match flow.leftover with
-  | None ->
-    begin Lwt_mutex.with_lock flow.rlock
-      (fun () ->
-        read_next_chunk flow
-        >>= function
+  else begin
+    if Cstruct.len flow.leftover = 0 then begin
+      Lwt_mutex.with_lock flow.rlock
+        (fun () ->
+          read_next_chunk flow
+          >>= function
+          | `Eof -> Lwt.return `Eof
+          | `Ok payload ->
+            let to_consume = min (Cstruct.len buf) (Cstruct.len payload) in
+            Cstruct.blit payload 0 buf 0 to_consume;
+            flow.leftover <- Cstruct.shift payload to_consume;
+            Lwt.return (`Ok (Cstruct.shift buf to_consume))
+        ) >>= function
         | `Eof -> Lwt.return `Eof
-        | `Ok payload ->
-          let to_consume = min (Cstruct.len buf) (Bytes.length payload) in
-          Cstruct.blit_from_string payload 0 buf 0 to_consume;
-          let to_leave = Bytes.length payload - to_consume in
-          if to_leave > 0 then flow.leftover <- Some (to_consume, payload);
-          Lwt.return (`Ok (Cstruct.shift buf to_consume))
-      ) >>= function
-      | `Eof -> Lwt.return `Eof
-      | `Ok buf -> read_into flow buf
+        | `Ok buf -> read_into flow buf
+    end else begin
+      let to_consume = min (Cstruct.len buf) (Cstruct.len flow.leftover) in
+      Cstruct.blit flow.leftover 0 buf 0 to_consume;
+      flow.leftover <- Cstruct.shift flow.leftover to_consume;
+      read_into flow (Cstruct.shift buf to_consume)
     end
-  | Some (consumed_last_time, payload) ->
-    let to_consume = min (Cstruct.len buf) (Bytes.length payload - consumed_last_time) in
-    Cstruct.blit_from_string payload consumed_last_time buf 0 to_consume;
-    let to_leave = Bytes.length payload - consumed_last_time - to_consume in
-    flow.leftover <- if to_leave = 0 then None else Some (consumed_last_time + to_consume, payload);
-    read_into flow (Cstruct.shift buf to_consume)
+  end
 
 let writev flow bufs =
   let rec loop = function
