@@ -4,4 +4,5 @@ script: bash -ex .travis-opam.sh
 sudo: required
 env:
   - OCAML_VERSION=latest PACKAGE="hvsock"
+  - OCAML_VERSION=4.03 PACKAGE="hvsock"
   - OCAML_VERSION=4.01 PACKAGE="hvsock"
