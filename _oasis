@@ -28,6 +28,17 @@ Library "hvsock_lwt"
     mirage-flow, logs, threads
   CSources:           lwt_hvsock_stubs.c
 
+Library "hvsock_lwt_unix"
+  Pack:               false
+  CompiledObject:     best
+  Path:               lwt_unix
+  Findlibname:        lwt_unix
+  Findlibparent:      hvsock
+  Modules:            Flow_lwt_unix_hvsock, Flow_lwt_unix_hvsock_shutdown,
+    Flow_lwt_unix_main, Flow_lwt_unix_time
+  BuildDepends:       lwt, hvsock, hvsock.lwt, bytes, mirage-types.lwt, cstruct,
+    mirage-flow, logs, threads, lwt.preemptive
+
 Document api
   Title:              Documentation and API reference
   Type:               ocamlbuild (0.3)
@@ -41,8 +52,7 @@ Executable hvcat
   CompiledObject:     best
   Path:               src
   MainIs:             hvcat.ml
-  BuildDepends:       cmdliner, hvsock, hvsock.lwt, lwt, lwt.unix, bytes,
-    lwt.preemptive
+  BuildDepends:       cmdliner, hvsock, hvsock.lwt, hvsock.lwt_unix, lwt, lwt.unix, bytes
 
 Executable test
   Build$:             flag(tests)
