@@ -1,3 +1,6 @@
+0.8.1 (2016-07-11)
+- Fix build on OCaml 4.03
+
 0.8 (2016-06-30)
 - Increase flow buffer size to 4KiB from 1KiB
 - Use Cstruct.t internally rather than marshalling to/from Byte.t
