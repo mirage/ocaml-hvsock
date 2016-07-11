@@ -24,8 +24,8 @@ Library "hvsock_lwt"
   Findlibname:        lwt
   Findlibparent:      hvsock
   Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown
-  BuildDepends:       lwt, lwt.preemptive, threads, hvsock, bytes,
-    mirage-types.lwt, cstruct, mirage-flow, logs
+  BuildDepends:       lwt, hvsock, bytes, mirage-types.lwt, cstruct,
+    mirage-flow, logs, threads
   CSources:           lwt_hvsock_stubs.c
 
 Document api
@@ -41,7 +41,8 @@ Executable hvcat
   CompiledObject:     best
   Path:               src
   MainIs:             hvcat.ml
-  BuildDepends:       cmdliner, hvsock, hvsock.lwt, lwt, lwt.unix, bytes
+  BuildDepends:       cmdliner, hvsock, hvsock.lwt, lwt, lwt.unix, bytes,
+    lwt.preemptive
 
 Executable test
   Build$:             flag(tests)
