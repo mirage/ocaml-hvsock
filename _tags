@@ -79,3 +79,4 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: package(unix)
 <lib_test/*.ml{,i,y}>: use_hvsock
 # OASIS_STOP
+<lwt/*>: thread
