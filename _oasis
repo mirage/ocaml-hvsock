@@ -32,7 +32,7 @@ Library "hvsock_lwt_unix"
   Pack:               false
   CompiledObject:     best
   Path:               lwt_unix
-  Findlibname:        lwt_unix
+  Findlibname:        lwt-unix
   Findlibparent:      hvsock
   Modules:            Flow_lwt_unix_hvsock, Flow_lwt_unix_hvsock_shutdown,
     Flow_lwt_unix_main, Flow_lwt_unix_time
@@ -52,7 +52,7 @@ Executable hvcat
   CompiledObject:     best
   Path:               src
   MainIs:             hvcat.ml
-  BuildDepends:       cmdliner, hvsock, hvsock.lwt, hvsock.lwt_unix, lwt, lwt.unix, bytes
+  BuildDepends:       cmdliner, hvsock, hvsock.lwt, hvsock.lwt-unix, lwt, lwt.unix, bytes
 
 Executable test
   Build$:             flag(tests)
