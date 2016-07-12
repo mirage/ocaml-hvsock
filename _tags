@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 27d0b9f4245f600b932755a5d3cb9e24)
+# DO NOT EDIT (digest: a19fe4134f34a556f2a78b19e927c80d)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -26,7 +26,6 @@ true: annot, bin_annot
 <lwt/*.ml{,i,y}>: package(cstruct)
 <lwt/*.ml{,i,y}>: package(logs)
 <lwt/*.ml{,i,y}>: package(lwt)
-<lwt/*.ml{,i,y}>: package(lwt.preemptive)
 <lwt/*.ml{,i,y}>: package(mirage-flow)
 <lwt/*.ml{,i,y}>: package(mirage-types.lwt)
 <lwt/*.ml{,i,y}>: package(threads)
@@ -36,12 +35,24 @@ true: annot, bin_annot
 "lwt/lwt_hvsock_stubs.c": package(cstruct)
 "lwt/lwt_hvsock_stubs.c": package(logs)
 "lwt/lwt_hvsock_stubs.c": package(lwt)
-"lwt/lwt_hvsock_stubs.c": package(lwt.preemptive)
 "lwt/lwt_hvsock_stubs.c": package(mirage-flow)
 "lwt/lwt_hvsock_stubs.c": package(mirage-types.lwt)
 "lwt/lwt_hvsock_stubs.c": package(threads)
 "lwt/lwt_hvsock_stubs.c": package(unix)
 "lwt/lwt_hvsock_stubs.c": use_hvsock
+# Library hvsock_lwt_unix
+"lwt_unix/hvsock_lwt_unix.cmxs": use_hvsock_lwt_unix
+<lwt_unix/*.ml{,i,y}>: package(bytes)
+<lwt_unix/*.ml{,i,y}>: package(cstruct)
+<lwt_unix/*.ml{,i,y}>: package(logs)
+<lwt_unix/*.ml{,i,y}>: package(lwt)
+<lwt_unix/*.ml{,i,y}>: package(lwt.preemptive)
+<lwt_unix/*.ml{,i,y}>: package(mirage-flow)
+<lwt_unix/*.ml{,i,y}>: package(mirage-types.lwt)
+<lwt_unix/*.ml{,i,y}>: package(threads)
+<lwt_unix/*.ml{,i,y}>: package(unix)
+<lwt_unix/*.ml{,i,y}>: use_hvsock
+<lwt_unix/*.ml{,i,y}>: use_hvsock_lwt
 # Executable hvcat
 <src/hvcat.{native,byte}>: package(bytes)
 <src/hvcat.{native,byte}>: package(cmdliner)
@@ -56,6 +67,7 @@ true: annot, bin_annot
 <src/hvcat.{native,byte}>: package(unix)
 <src/hvcat.{native,byte}>: use_hvsock
 <src/hvcat.{native,byte}>: use_hvsock_lwt
+<src/hvcat.{native,byte}>: use_hvsock_lwt_unix
 <src/*.ml{,i,y}>: package(bytes)
 <src/*.ml{,i,y}>: package(cmdliner)
 <src/*.ml{,i,y}>: package(cstruct)
@@ -69,6 +81,7 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: package(unix)
 <src/*.ml{,i,y}>: use_hvsock
 <src/*.ml{,i,y}>: use_hvsock_lwt
+<src/*.ml{,i,y}>: use_hvsock_lwt_unix
 # Executable test
 <lib_test/test.{native,byte}>: package(alcotest)
 <lib_test/test.{native,byte}>: package(logs.fmt)
