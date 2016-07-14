@@ -15,6 +15,8 @@
  *
  *)
 
+type 'a io = 'a
+
 type vmid =
   | Wildcard
   | Children
@@ -32,6 +34,10 @@ let string_of_vmid = function
 type sockaddr = {
   vmid: vmid;
   serviceid: string;
+}
+
+type t = {
+  mutable fd: Unix.file_descr option;
 }
 
 external get_wildcard: unit -> string = "stub_hvsock_wildcard"
@@ -68,13 +74,60 @@ external do_accept: Unix.file_descr -> Unix.file_descr * string * string = "stub
 
 external do_connect: Unix.file_descr -> string -> string -> unit = "stub_hvsock_connect"
 
-let create = do_socket
+let create () = { fd = Some (do_socket ()) }
 
-let bind fd { vmid; serviceid } = do_bind fd (string_of_vmid vmid) serviceid
+let with_fd fn_name fn_arg t f = match t with
+  | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, fn_name, fn_arg))
+  | { fd = Some fd } -> f fd
 
-let accept fd =
-  let c, vmid, serviceid = do_accept fd in
-  let vmid = vmid_of_string vmid in
-  fd, { vmid; serviceid }
+let bind t { vmid; serviceid } =
+  let vmid' = string_of_vmid vmid in
+  with_fd "bind" (vmid' ^ ":" ^ serviceid) t
+    (fun fd ->
+      do_bind fd vmid' serviceid
+    )
 
-let connect fd { vmid; serviceid } = do_connect fd (string_of_vmid vmid) serviceid
+let accept t =
+  with_fd "accept" "" t
+    (fun fd ->
+      let c, vmid, serviceid = do_accept fd in
+      let vmid = vmid_of_string vmid in
+      { fd = Some fd }, { vmid; serviceid }
+    )
+
+let connect t { vmid; serviceid } =
+  let vmid' = string_of_vmid vmid in
+  with_fd "connect" (vmid' ^ ":" ^ serviceid) t
+    (fun fd ->
+      do_connect fd vmid' serviceid
+    )
+
+let close t =
+  with_fd "close" "" t
+    (fun fd ->
+      t.fd <- None;
+      Unix.close fd
+    )
+
+let listen t backlog =
+  with_fd "listen" (string_of_int backlog) t
+    (fun fd ->
+      Unix.listen fd backlog
+    )
+
+type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
+
+external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
+external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_send"
+
+let read t b =
+  with_fd "read" (string_of_int (Cstruct.len b)) t
+    (fun fd ->
+      stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
+    )
+
+let write t b =
+  with_fd "write" (string_of_int (Cstruct.len b)) t
+    (fun fd ->
+      stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
+    )

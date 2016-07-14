@@ -1,5 +1,4 @@
 (*
- * Copyright (C) 2015 David Scott <dave.scott@unikernel.com>
  * Copyright (C) 2016 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -16,12 +15,6 @@
  *
  *)
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN): sig
-  include V1_LWT.FLOW
-
-  module Hvsock: Lwt_hvsock.HVSOCK
-
-  val connect: Hvsock.t -> flow
-
-  val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+module type MAIN = sig
+  val run_in_main: (unit -> 'a Lwt.t) -> 'a
 end

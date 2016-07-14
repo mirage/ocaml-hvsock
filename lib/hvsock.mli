@@ -30,17 +30,5 @@ type sockaddr = {
 }
 (** An AF_HVSOCK socket address *)
 
-val create: unit -> Unix.file_descr
-(** [create ()] creates an unbound AF_HVSOCK socket *)
-
-val bind: Unix.file_descr -> sockaddr -> unit
-(** [bind socket sockaddr] binds [socket] to [sockaddr] *)
-
-val accept: Unix.file_descr -> Unix.file_descr * sockaddr
-(** [accept fd] accepts a single connection *)
-
-val connect: Unix.file_descr -> sockaddr -> unit
-(** [connect fd sockaddr] connects to a remote partition. Note this
-    has been observed to block forever if the server is not running
-    when this call is executed, even if the server starts up afterwards.
-    The workaround seems to be to close the fd and try again. *)
+include Hvsock_s.BLOCKING_SOCKET
+  with type sockaddr := sockaddr
