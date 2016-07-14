@@ -70,20 +70,24 @@ static value Val_guid(GUID guid){
   return caml_copy_string(str);
 }
 
-CAMLprim value stub_hvsock_wildcard(){
-  return Val_guid(HV_GUID_WILDCARD);
+CAMLprim value stub_hvsock_wildcard(value v_unit){
+  CAMLparam1(v_unit);
+  CAMLreturn(Val_guid(HV_GUID_WILDCARD));
 }
 
-CAMLprim value stub_hvsock_children(){
-  return Val_guid(HV_GUID_CHILDREN);
+CAMLprim value stub_hvsock_children(value v_unit){
+  CAMLparam1(v_unit);
+  CAMLreturn(Val_guid(HV_GUID_CHILDREN));
 }
 
-CAMLprim value stub_hvsock_loopback(){
-  return Val_guid(HV_GUID_LOOPBACK);
+CAMLprim value stub_hvsock_loopback(value v_unit){
+  CAMLparam1(v_unit);
+  CAMLreturn(Val_guid(HV_GUID_LOOPBACK));
 }
 
-CAMLprim value stub_hvsock_parent(){
-  return Val_guid(HV_GUID_PARENT);
+CAMLprim value stub_hvsock_parent(value v_unit){
+  CAMLparam1(v_unit);
+  CAMLreturn(Val_guid(HV_GUID_PARENT));
 }
 
 CAMLprim value stub_hvsock_socket(){
