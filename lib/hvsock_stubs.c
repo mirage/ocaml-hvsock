@@ -172,3 +172,56 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   }
   CAMLreturn(Val_int(0));
 }
+
+CAMLprim value
+stub_hvsock_ba_recv(value fd, value val_buf, value val_ofs, value val_len)
+{
+  CAMLparam4(fd, val_buf, val_ofs, val_len);
+  int ret = 0;
+
+#ifdef WIN32
+  char *data = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
+  size_t c_len = Int_val(val_len);
+  SOCKET s = Socket_val(fd);
+  DWORD err = 0;
+
+  caml_release_runtime_system();
+  ret = recv(s, data, c_len, 0);
+  if (ret == SOCKET_ERROR) err = WSAGetLastError();
+  caml_acquire_runtime_system();
+
+  if (err) {
+    win32_maperr(err);
+    uerror("read", Nothing);
+  }
+#else
+  caml_failwith("AF_HYPERV only available on Windows");
+#endif
+  CAMLreturn(Val_int(ret));
+}
+
+CAMLprim value
+stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
+{
+  CAMLparam4(fd, val_buf, val_ofs, val_len);
+  int ret = 0;
+#ifdef WIN32
+  char *data = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
+  size_t c_len = Int_val(val_len);
+  SOCKET s = Socket_val(fd);
+  DWORD err = 0;
+
+  caml_release_runtime_system();
+  ret = send(s, data, c_len, 0);
+  if (ret == SOCKET_ERROR) err = WSAGetLastError();
+  caml_acquire_runtime_system();
+
+  if (err) {
+    win32_maperr(err);
+    uerror("read", Nothing);
+  }
+#else
+  caml_failwith("AF_HYPERV only available on Windows");
+#endif
+  CAMLreturn(Val_int(ret));
+}
