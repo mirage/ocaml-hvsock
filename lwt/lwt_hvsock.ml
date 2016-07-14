@@ -46,8 +46,8 @@ end
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
-external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_ba_recv"
-external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_ba_send"
+external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
+external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_send"
 
 let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len

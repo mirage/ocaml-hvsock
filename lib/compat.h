@@ -55,6 +55,7 @@ typedef int socklen_t;
 #ifndef WIN32
 /* Compat layer for Linux/Unix */
 typedef int SOCKET;
+typedef unsigned int DWORD;
 
 #ifndef SOCKET_ERROR
 #define SOCKET_ERROR -1
@@ -65,6 +66,7 @@ typedef int SOCKET;
 
 /* OCaml FFI windows helpers */
 #define win32_maperr(s) /* s */
+#define WSAGetLastError(s) 0
 #define win_alloc_socket(s) Val_int(s)
 #define Handle_val(x) Int_val(x)
 #define Socket_val(x) Int_val(x)
@@ -117,4 +119,3 @@ MAKE_GUID(HV_GUID_LOOPBACK,
     0xe0e16197, 0xdd56, 0x4a10, 0x91, 0x95, 0x5e, 0xe7, 0xa1, 0x55, 0xa8, 0x38);
 MAKE_GUID(HV_GUID_PARENT,
     0xa42e7cda, 0xd03f, 0x480c, 0x9c, 0xc2, 0xa4, 0xde, 0x20, 0xab, 0xb8, 0x78);
-

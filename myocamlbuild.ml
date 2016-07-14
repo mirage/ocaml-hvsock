@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 492513776843578d28341aa698a11b8a) *)
+(* DO NOT EDIT (digest: fa3961c21596220a12ef693d037ce6c2) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -773,7 +773,7 @@ let package_default =
           ("hvsock_lwt", ["lwt"], []);
           ("hvsock_lwt_unix", ["lwt_unix"], [])
        ];
-     lib_c = [("hvsock", "lib", ["lib/compat.h"]); ("hvsock_lwt", "lwt", [])];
+     lib_c = [("hvsock", "lib", ["lib/compat.h"])];
      flags = [];
      includes =
        [

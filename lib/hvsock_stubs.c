@@ -90,7 +90,7 @@ CAMLprim value stub_hvsock_parent(value v_unit){
   CAMLreturn(Val_guid(HV_GUID_PARENT));
 }
 
-CAMLprim value stub_hvsock_socket(){
+CAMLprim value stub_hvsock_socket(value v_unit){
   SOCKET s = INVALID_SOCKET;
   s = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
 
@@ -121,7 +121,7 @@ CAMLprim value stub_hvsock_bind(value sock, value vmid, value serviceid) {
     win32_maperr(WSAGetLastError());
     uerror("bind", Nothing);
   }
-  CAMLreturn(Val_int(0));
+  CAMLreturn(Val_unit);
 }
 
 CAMLprim value stub_hvsock_accept(value sock){
@@ -170,5 +170,51 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     win32_maperr(WSAGetLastError());
     uerror("connect", Nothing);
   }
-  CAMLreturn(Val_int(0));
+  CAMLreturn(Val_unit);
+}
+
+CAMLprim value
+stub_hvsock_ba_recv(value fd, value val_buf, value val_ofs, value val_len)
+{
+  CAMLparam4(fd, val_buf, val_ofs, val_len);
+  int ret = 0;
+
+  char *data = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
+  size_t c_len = Int_val(val_len);
+  SOCKET s = Socket_val(fd);
+  DWORD err = 0;
+
+  caml_release_runtime_system();
+  ret = recv(s, data, c_len, 0);
+  if (ret == SOCKET_ERROR) err = WSAGetLastError();
+  caml_acquire_runtime_system();
+
+  if (err) {
+    win32_maperr(err);
+    uerror("read", Nothing);
+  }
+
+  CAMLreturn(Val_int(ret));
+}
+
+CAMLprim value
+stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
+{
+  CAMLparam4(fd, val_buf, val_ofs, val_len);
+  int ret = 0;
+  char *data = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
+  size_t c_len = Int_val(val_len);
+  SOCKET s = Socket_val(fd);
+  DWORD err = 0;
+
+  caml_release_runtime_system();
+  ret = send(s, data, c_len, 0);
+  if (ret == SOCKET_ERROR) err = WSAGetLastError();
+  caml_acquire_runtime_system();
+
+  if (err) {
+    win32_maperr(err);
+    uerror("read", Nothing);
+  }
+  CAMLreturn(Val_int(ret));
 }
