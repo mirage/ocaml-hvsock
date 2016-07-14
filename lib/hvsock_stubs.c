@@ -121,7 +121,7 @@ CAMLprim value stub_hvsock_bind(value sock, value vmid, value serviceid) {
     win32_maperr(WSAGetLastError());
     uerror("bind", Nothing);
   }
-  CAMLreturn(Val_int(0));
+  CAMLreturn(Val_unit);
 }
 
 CAMLprim value stub_hvsock_accept(value sock){
@@ -170,7 +170,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     win32_maperr(WSAGetLastError());
     uerror("connect", Nothing);
   }
-  CAMLreturn(Val_int(0));
+  CAMLreturn(Val_unit);
 }
 
 CAMLprim value
