@@ -179,7 +179,6 @@ stub_hvsock_ba_recv(value fd, value val_buf, value val_ofs, value val_len)
   CAMLparam4(fd, val_buf, val_ofs, val_len);
   int ret = 0;
 
-#ifdef WIN32
   char *data = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
   size_t c_len = Int_val(val_len);
   SOCKET s = Socket_val(fd);
@@ -194,9 +193,7 @@ stub_hvsock_ba_recv(value fd, value val_buf, value val_ofs, value val_len)
     win32_maperr(err);
     uerror("read", Nothing);
   }
-#else
-  caml_failwith("AF_HYPERV only available on Windows");
-#endif
+
   CAMLreturn(Val_int(ret));
 }
 
@@ -205,7 +202,6 @@ stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
 {
   CAMLparam4(fd, val_buf, val_ofs, val_len);
   int ret = 0;
-#ifdef WIN32
   char *data = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
   size_t c_len = Int_val(val_len);
   SOCKET s = Socket_val(fd);
@@ -220,8 +216,5 @@ stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
     win32_maperr(err);
     uerror("read", Nothing);
   }
-#else
-  caml_failwith("AF_HYPERV only available on Windows");
-#endif
   CAMLreturn(Val_int(ret));
 }
