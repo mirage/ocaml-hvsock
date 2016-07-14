@@ -90,7 +90,7 @@ CAMLprim value stub_hvsock_parent(value v_unit){
   CAMLreturn(Val_guid(HV_GUID_PARENT));
 }
 
-CAMLprim value stub_hvsock_socket(){
+CAMLprim value stub_hvsock_socket(value v_unit){
   SOCKET s = INVALID_SOCKET;
   s = socket(AF_HYPERV, SOCK_STREAM, HV_PROTOCOL_RAW);
 
