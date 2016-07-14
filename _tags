@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: a19fe4134f34a556f2a78b19e927c80d)
+# DO NOT EDIT (digest: 959ed78314ff71b9572a5421b3c5fcbb)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -21,7 +21,6 @@ true: annot, bin_annot
 "lib/hvsock_stubs.c": package(unix)
 # Library hvsock_lwt
 "lwt/hvsock_lwt.cmxs": use_hvsock_lwt
-<lwt/hvsock_lwt.{cma,cmxa}>: use_libhvsock_lwt_stubs
 <lwt/*.ml{,i,y}>: package(bytes)
 <lwt/*.ml{,i,y}>: package(cstruct)
 <lwt/*.ml{,i,y}>: package(logs)
@@ -31,15 +30,6 @@ true: annot, bin_annot
 <lwt/*.ml{,i,y}>: package(threads)
 <lwt/*.ml{,i,y}>: package(unix)
 <lwt/*.ml{,i,y}>: use_hvsock
-"lwt/lwt_hvsock_stubs.c": package(bytes)
-"lwt/lwt_hvsock_stubs.c": package(cstruct)
-"lwt/lwt_hvsock_stubs.c": package(logs)
-"lwt/lwt_hvsock_stubs.c": package(lwt)
-"lwt/lwt_hvsock_stubs.c": package(mirage-flow)
-"lwt/lwt_hvsock_stubs.c": package(mirage-types.lwt)
-"lwt/lwt_hvsock_stubs.c": package(threads)
-"lwt/lwt_hvsock_stubs.c": package(unix)
-"lwt/lwt_hvsock_stubs.c": use_hvsock
 # Library hvsock_lwt_unix
 "lwt_unix/hvsock_lwt_unix.cmxs": use_hvsock_lwt_unix
 <lwt_unix/*.ml{,i,y}>: package(bytes)
