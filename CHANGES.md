@@ -1,3 +1,6 @@
+0.9.0
+- Fix the signatures of the hvsock C stubs to include `unit` arg.
+
 0.8.1 (2016-07-11)
 - Fix build on OCaml 4.03
 - Add an hvsock.lwt-unix subpackage for users of Lwt_unix
@@ -13,7 +16,7 @@
 - Clarify/add/update copyright headers in source files
 
 0.6 (2016-05-25)
-- Add a simple protocol with shutdown read,write and close
+- Add a simple protocol with shutdown read, write and close
 
 0.5 (2016-05-21)
 - Bump Linux AF_HYPERV to 43
