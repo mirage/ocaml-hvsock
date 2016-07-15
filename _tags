@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 4b3b3fde0563dab96f1668aced6e5377)
+# DO NOT EDIT (digest: 39740f2beb4d375894315fbe4ae7f331)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -86,7 +86,6 @@ true: annot, bin_annot
 <lib_test/test.{native,byte}>: package(mirage-types.lwt)
 <lib_test/test.{native,byte}>: package(threads)
 <lib_test/test.{native,byte}>: package(unix)
-<lib_test/test.{native,byte}>: package(unix-type-representations)
 <lib_test/test.{native,byte}>: use_hvsock
 <lib_test/test.{native,byte}>: use_hvsock_lwt
 <lib_test/test.{native,byte}>: use_hvsock_lwt_unix
@@ -101,7 +100,6 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: package(mirage-types.lwt)
 <lib_test/*.ml{,i,y}>: package(threads)
 <lib_test/*.ml{,i,y}>: package(unix)
-<lib_test/*.ml{,i,y}>: package(unix-type-representations)
 <lib_test/*.ml{,i,y}>: use_hvsock
 <lib_test/*.ml{,i,y}>: use_hvsock_lwt
 <lib_test/*.ml{,i,y}>: use_hvsock_lwt_unix
