@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 51de2c3b660132a7d07786dde962c99f)
+# DO NOT EDIT (digest: 4b3b3fde0563dab96f1668aced6e5377)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -76,14 +76,34 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: use_hvsock_lwt_unix
 # Executable test
 <lib_test/test.{native,byte}>: package(alcotest)
+<lib_test/test.{native,byte}>: package(bytes)
 <lib_test/test.{native,byte}>: package(cstruct)
+<lib_test/test.{native,byte}>: package(logs)
 <lib_test/test.{native,byte}>: package(logs.fmt)
+<lib_test/test.{native,byte}>: package(lwt)
+<lib_test/test.{native,byte}>: package(lwt.preemptive)
+<lib_test/test.{native,byte}>: package(mirage-flow)
+<lib_test/test.{native,byte}>: package(mirage-types.lwt)
+<lib_test/test.{native,byte}>: package(threads)
 <lib_test/test.{native,byte}>: package(unix)
+<lib_test/test.{native,byte}>: package(unix-type-representations)
 <lib_test/test.{native,byte}>: use_hvsock
+<lib_test/test.{native,byte}>: use_hvsock_lwt
+<lib_test/test.{native,byte}>: use_hvsock_lwt_unix
 <lib_test/*.ml{,i,y}>: package(alcotest)
+<lib_test/*.ml{,i,y}>: package(bytes)
 <lib_test/*.ml{,i,y}>: package(cstruct)
+<lib_test/*.ml{,i,y}>: package(logs)
 <lib_test/*.ml{,i,y}>: package(logs.fmt)
+<lib_test/*.ml{,i,y}>: package(lwt)
+<lib_test/*.ml{,i,y}>: package(lwt.preemptive)
+<lib_test/*.ml{,i,y}>: package(mirage-flow)
+<lib_test/*.ml{,i,y}>: package(mirage-types.lwt)
+<lib_test/*.ml{,i,y}>: package(threads)
 <lib_test/*.ml{,i,y}>: package(unix)
+<lib_test/*.ml{,i,y}>: package(unix-type-representations)
 <lib_test/*.ml{,i,y}>: use_hvsock
+<lib_test/*.ml{,i,y}>: use_hvsock_lwt
+<lib_test/*.ml{,i,y}>: use_hvsock_lwt_unix
 # OASIS_STOP
 <lwt/*>: thread
