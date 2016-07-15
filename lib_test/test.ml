@@ -1,6 +1,6 @@
 let src =
   let src = Logs.Src.create "test" ~doc:"hvsock test" in
-  Logs.Src.set_level src (Some Logs.Info);
+  Logs.Src.set_level src (Some Logs.Debug);
   src
 
 module Log = (val Logs.src_log src : Logs.LOG)
@@ -123,10 +123,11 @@ module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN) = struct
     TcpSocket.bind tcp 0;
     let port = TcpSocket.getsockname tcp in
     let s = Socket.of_file_descr tcp in
-    Socket.listen s 1;
+    Socket.listen s 5;
     let rec loop () =
       Socket.accept s
       >>= fun (client, _) ->
+Log.debug (fun f -> f "accepted");
       let _ =
         Lwt.finalize
           (fun () -> f client)
@@ -164,6 +165,7 @@ module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN) = struct
     let rec loop total =
       (* Let's allocate a lot to stress the system a bit *)
       let buffer = Cstruct.create 128 in
+Log.debug (fun f -> f "echo server reading");
       Socket.read s buffer
       >>= function
       | 0 ->
@@ -232,13 +234,11 @@ module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN) = struct
                   let rec loop = function
                     | 0 -> Lwt.return_unit
                     | n ->
-                    Gc.compact ();
                       let buf = nice_pattern buffer_length in
                       let buf' = zeroes buffer_length in
-                      let background_reader_t = really_read s buf' in
                       really_write s buf
                       >>= fun () ->
-                      background_reader_t
+                      really_read s buf'
                       >>= fun () ->
                       if Cstruct.compare buf buf' <> 0 then failwith "buffers don't match";
                       loop (n - 1) in
@@ -294,6 +294,9 @@ let test_lwt_unix = List.map (fun (descr, thread) ->
 let () =
   Logs.set_reporter (Logs_fmt.reporter ());
   (try Sys.set_signal Sys.sigpipe Sys.Signal_ignore with _ -> ());
+(*
   Alcotest.run "hvsock" [
     "Lwt_unix tests", test_lwt_unix;
   ]
+*)
+  Lwt_main.run (Lwt_unix_tests.one_echo_test ())

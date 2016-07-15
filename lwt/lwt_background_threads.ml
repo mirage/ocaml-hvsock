@@ -51,7 +51,9 @@ module Make(Main: Lwt_hvsock_s.MAIN) = struct
         (fun () -> Lwt_stream.next requests >>= fun x -> Lwt.return (Some x))
         (fun _ -> Lwt.return None)
       ) with
-    | None -> ()
+    | None ->
+Printf.fprintf stderr "None\n%!";
+ ()
     | Some r ->
       let result =
         try
@@ -78,5 +80,5 @@ module Make(Main: Lwt_hvsock_s.MAIN) = struct
 
   let shutdown worker =
     worker.push_request None;
-    detach Thread.join worker.t
+    Lwt.return ()
 end

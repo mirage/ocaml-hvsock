@@ -43,11 +43,15 @@ module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN)(Socket: Hvsock_s.BLOCKIN
   let write t buf = Background.apply t.write buf
 
   let close t =
+Printf.fprintf stderr "closing fd\n%!";
     Socket.close t.fd;
+Printf.fprintf stderr "shutting down read\n%!";
     Background.shutdown t.read
     >>= fun () ->
+Printf.fprintf stderr "shutting down write\n%!";
     Background.shutdown t.write
     >>= fun () ->
+Printf.fprintf stderr "shut down\n%!";
     Lwt.return ()
 
   let bind t addr = Socket.bind t.fd addr
