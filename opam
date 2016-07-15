@@ -30,6 +30,7 @@ depends: [
   "ocamlfind" {build}
   "ocamlbuild" {build}
   "alcotest" {test & >= "0.4.0"}
+  "unix-type-representations" {test}
 ]
 
 available: [ ocaml-version >= "4.01.0" ]
