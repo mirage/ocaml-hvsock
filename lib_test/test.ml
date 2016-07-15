@@ -9,12 +9,21 @@ module TcpSocket = struct
   type 'a io = 'a
   type t = {
     mutable s: Unix.file_descr option;
+    i: int;
   }
+
+  let next_id =
+    let next = ref 0 in
+    fun () ->
+      let result = !next in
+      incr next;
+      result
 
   let create () =
     let s = Unix.socket Unix.PF_INET Unix.SOCK_STREAM 0 in
     Unix.setsockopt s Unix.SO_REUSEADDR true;
-    { s = Some s }
+    let i = next_id () in
+    { s = Some s; i }
 
   type sockaddr = int
 
@@ -39,7 +48,9 @@ module TcpSocket = struct
       (fun s ->
         let fd, sa = Unix.accept s in
         match sa with
-        | Unix.ADDR_INET(_, port) -> { s = Some fd }, port
+        | Unix.ADDR_INET(_, port) ->
+          let i = next_id () in
+          { s = Some fd; i }, port
         | _ -> assert false
       )
 
@@ -55,7 +66,7 @@ module TcpSocket = struct
       ()
     | { s = Some s } ->
       t.s <- None;
-      Log.debug (fun f -> f "close %d" (Unix_representations.int_of_file_descr s));
+      Log.debug (fun f -> f "close %d" t.i);
       Unix.close s
 
   type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
@@ -68,16 +79,16 @@ module TcpSocket = struct
     with_fd "recv" "" t
       (fun s ->
         try
-          Log.debug (fun f -> f "%d: read ..." (Unix_representations.int_of_file_descr s));
+          Log.debug (fun f -> f "%d: read ..." t.i);
           let r = stub_ba_recv s b.Cstruct.buffer b.Cstruct.off b.Cstruct.len in
-          Log.debug (fun f -> f "%d: read ... = %d" (Unix_representations.int_of_file_descr s) r);
+          Log.debug (fun f -> f "%d: read ... = %d" t.i r);
           r
         with
         | Unix.Unix_error(Unix.EPIPE, _, _) ->
-          Log.debug (fun f -> f "%d: read ... EPIPE" (Unix_representations.int_of_file_descr s));
+          Log.debug (fun f -> f "%d: read ... EPIPE" t.i);
           0
         | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
-          Log.debug (fun f -> f "%d  read ... ECONNRESET" (Unix_representations.int_of_file_descr s));
+          Log.debug (fun f -> f "%d  read ... ECONNRESET" t.i);
           0
       )
 
@@ -86,13 +97,13 @@ module TcpSocket = struct
     with_fd "send" "" t
       (fun s ->
         try
-          Log.debug (fun f -> f "%d write ..." (Unix_representations.int_of_file_descr s));
+          Log.debug (fun f -> f "%d write ..." t.i);
           let r = stub_ba_send s b.Cstruct.buffer b.Cstruct.off b.Cstruct.len in
-          Log.debug (fun f -> f "%d write ... = %d" (Unix_representations.int_of_file_descr s) r);
+          Log.debug (fun f -> f "%d write ... = %d" t.i r);
           r
         with
         | Unix.Unix_error(Unix.EPIPE, _, _) ->
-          Log.debug (fun f -> f "%d write ... EPIPE" (Unix_representations.int_of_file_descr s));
+          Log.debug (fun f -> f "%d write ... EPIPE" t.i);
           0
       )
 end
@@ -221,6 +232,7 @@ module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN) = struct
                   let rec loop = function
                     | 0 -> Lwt.return_unit
                     | n ->
+                    Gc.compact ();
                       let buf = nice_pattern buffer_length in
                       let buf' = zeroes buffer_length in
                       let background_reader_t = really_read s buf' in
