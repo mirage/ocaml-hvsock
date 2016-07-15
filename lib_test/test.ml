@@ -293,7 +293,7 @@ let test_lwt_unix = List.map (fun (descr, thread) ->
 
 let () =
   Logs.set_reporter (Logs_fmt.reporter ());
-  Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
+  (try Sys.set_signal Sys.sigpipe Sys.Signal_ignore with _ -> ());
   Alcotest.run "hvsock" [
     "Lwt_unix tests", test_lwt_unix;
   ]
