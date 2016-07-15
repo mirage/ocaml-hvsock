@@ -102,12 +102,12 @@ let connect t { vmid; serviceid } =
       do_connect fd vmid' serviceid
     )
 
-let close t =
-  with_fd "close" "" t
-    (fun fd ->
-      t.fd <- None;
-      Unix.close fd
-    )
+let close t = match t.fd with
+  | None ->
+    ()
+  | Some fd ->
+    t.fd <- None;
+    Unix.close fd
 
 let listen t backlog =
   with_fd "listen" (string_of_int backlog) t
