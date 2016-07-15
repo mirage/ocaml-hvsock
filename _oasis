@@ -60,7 +60,7 @@ Executable test
   CompiledObject:     best
   Path:               lib_test
   MainIs:             test.ml
-  BuildDepends:       hvsock, alcotest, logs.fmt
+  BuildDepends:       hvsock, hvsock.lwt-unix, alcotest, logs.fmt
 
 Test test
   Run$:               flag(tests)
