@@ -202,7 +202,7 @@ let close flow =
                   | Message.ShutdownWrite ->
                     wait_for_close ()
                   | Message.Data n ->
-                    really_read flow.fd payload
+                    really_read flow.fd (Cstruct.sub payload 0 n)
                     >>= function
                     | `Eof -> Lwt.return ()
                     | `Ok () -> wait_for_close () in
