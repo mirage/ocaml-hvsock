@@ -189,7 +189,7 @@ stub_hvsock_ba_recv(value fd, value val_buf, value val_ofs, value val_len)
   if (ret == SOCKET_ERROR) err = WSAGetLastError();
   caml_acquire_runtime_system();
 
-  if (err) {
+  if (ret == SOCKET_ERROR) {
     win32_maperr(err);
     uerror("read", Nothing);
   }
@@ -212,7 +212,7 @@ stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
   if (ret == SOCKET_ERROR) err = WSAGetLastError();
   caml_acquire_runtime_system();
 
-  if (err) {
+  if (ret == SOCKET_ERROR) {
     win32_maperr(err);
     uerror("read", Nothing);
   }
