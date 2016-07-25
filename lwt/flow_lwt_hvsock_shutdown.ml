@@ -232,7 +232,7 @@ let write flow buffer =
             >>= function
             | `Eof -> Lwt.return `Eof
             | `Ok () ->
-              really_write flow.fd buffer
+              really_write flow.fd (Cstruct.sub buffer 0 this_batch)
           )
         >>= function
         | `Eof -> Lwt.return `Eof
