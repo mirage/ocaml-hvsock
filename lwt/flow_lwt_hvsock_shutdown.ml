@@ -227,12 +227,13 @@ let write flow buffer =
         let this_batch = min len maxMsgSize in
         Lwt_mutex.with_lock flow.wlock
           (fun () ->
+            let to_send = Cstruct.sub remaining 0 this_batch in
             Message.(marshal (Data this_batch) flow.write_header_buffer);
             really_write flow.fd flow.write_header_buffer
             >>= function
             | `Eof -> Lwt.return `Eof
             | `Ok () ->
-              really_write flow.fd (Cstruct.sub buffer 0 this_batch)
+              really_write flow.fd to_send
           )
         >>= function
         | `Eof -> Lwt.return `Eof
