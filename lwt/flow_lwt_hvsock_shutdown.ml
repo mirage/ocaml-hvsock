@@ -147,6 +147,7 @@ let shutdown_write flow =
     Lwt_mutex.with_lock flow.wlock
       (fun () ->
         Message.(marshal ShutdownWrite flow.write_header_buffer);
+        Log.debug (fun f -> f "TX ShutdownWrite");
         really_write flow.fd flow.write_header_buffer
         >>= function
         | `Eof ->
@@ -164,6 +165,7 @@ let shutdown_read flow =
     Lwt_mutex.with_lock flow.wlock
       (fun () ->
         Message.(marshal ShutdownRead flow.write_header_buffer);
+        Log.debug (fun f -> f "TX ShutdownRead");
         really_write flow.fd flow.write_header_buffer
         >>= function
         | `Eof ->
@@ -183,6 +185,7 @@ let close flow =
       (fun () ->
         Lwt_mutex.with_lock flow.wlock
           (fun () ->
+            Log.debug (fun f -> f "TX Close");
             Message.(marshal Close flow.write_header_buffer);
             really_write flow.fd flow.write_header_buffer
             >>= function
@@ -197,11 +200,16 @@ let close flow =
                 | `Ok () ->
                   match Message.unmarshal header with
                   | Message.Close ->
+                    Log.debug (fun f -> f "RX Close");
                     Lwt.return ()
-                  | Message.ShutdownRead
+                  | Message.ShutdownRead ->
+                    Log.debug (fun f -> f "RX Close");
+                    Lwt.return ()
                   | Message.ShutdownWrite ->
+                    Log.debug (fun f -> f "RX ShutdownWrite");
                     wait_for_close ()
                   | Message.Data n ->
+                    Log.debug (fun f -> f "RX Data %d" n);
                     really_read flow.fd (Cstruct.sub payload 0 n)
                     >>= function
                     | `Eof -> Lwt.return ()
@@ -228,6 +236,7 @@ let write flow buffer =
         Lwt_mutex.with_lock flow.wlock
           (fun () ->
             let to_send = Cstruct.sub remaining 0 this_batch in
+            Log.debug (fun f -> f "TX Data %d (%s)" this_batch (String.escaped (Cstruct.to_string to_send)));
             Message.(marshal (Data this_batch) flow.write_header_buffer);
             really_write flow.fd flow.write_header_buffer
             >>= function
@@ -251,16 +260,20 @@ let read_next_chunk flow =
       | `Ok () ->
         match Message.unmarshal flow.read_header_buffer with
         | Message.ShutdownWrite ->
+          Log.debug (fun f -> f "RX ShutdownWrite");
           flow.read_closed <- true;
           Lwt.return `Eof
         | Message.Close ->
+          Log.debug (fun f -> f "RX Close");
           close flow
           >>= fun () ->
           Lwt.return `Eof
         | Message.ShutdownRead ->
+          Log.debug (fun f -> f "RX ShutdownRead");
           flow.write_closed <- true;
           loop ()
         | Message.Data n ->
+          Log.debug (fun f -> f "RX Data %d" n);
           let payload = Cstruct.create n in
           really_read flow.fd payload
           >>= function
