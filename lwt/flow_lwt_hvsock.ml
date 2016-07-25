@@ -25,7 +25,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 open Lwt
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock_s.MAIN) = struct
 
 module Hvsock = Lwt_hvsock.Make(Time)(Main)
 

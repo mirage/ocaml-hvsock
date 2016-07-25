@@ -13,8 +13,8 @@ Library "hvsock"
   CompiledObject:     best
   Path:               lib
   Findlibname:        hvsock
-  Modules:            Hvsock
-  BuildDepends:       unix
+  Modules:            Hvsock, Hvsock_s
+  BuildDepends:       unix, cstruct
   CSources:           hvsock_stubs.c, compat.h
 
 Library "hvsock_lwt"
@@ -23,7 +23,8 @@ Library "hvsock_lwt"
   Path:               lwt
   Findlibname:        lwt
   Findlibparent:      hvsock
-  Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown
+  Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown,
+    Lwt_background_threads, Lwt_blocking_socket, Lwt_hvsock_s
   BuildDepends:       lwt, hvsock, bytes, mirage-types.lwt, cstruct,
     mirage-flow, logs, threads
 
@@ -59,7 +60,7 @@ Executable test
   CompiledObject:     best
   Path:               lib_test
   MainIs:             test.ml
-  BuildDepends:       hvsock, alcotest, logs.fmt
+  BuildDepends:       hvsock, hvsock.lwt-unix, alcotest, logs.fmt
 
 Test test
   Run$:               flag(tests)

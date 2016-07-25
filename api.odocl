@@ -1,7 +1,11 @@
 # OASIS_START
-# DO NOT EDIT (digest: 0f90add6ea3999bf7b9aef9f2025be9f)
+# DO NOT EDIT (digest: 5953e8a87ff6e90a4de26409255b82c8)
 lib/Hvsock
+lib/Hvsock_s
 lwt/Lwt_hvsock
 lwt/Flow_lwt_hvsock
 lwt/Flow_lwt_hvsock_shutdown
+lwt/Lwt_background_threads
+lwt/Lwt_blocking_socket
+lwt/Lwt_hvsock_s
 # OASIS_STOP

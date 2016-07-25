@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 81959ebd2605cb9590db1211931c3519)
+# DO NOT EDIT (digest: 4494d8c69b430122c46097501b718379)
 version = "0.9.0"
 description = "Hyper-V sockets"
-requires = "unix"
+requires = "unix cstruct"
 archive(byte) = "hvsock.cma"
 archive(byte, plugin) = "hvsock.cma"
 archive(native) = "hvsock.cmxa"

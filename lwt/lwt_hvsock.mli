@@ -15,45 +15,12 @@
  *
  *)
 
-open Hvsock
+module type MAIN = Lwt_hvsock_s.MAIN
 
-module type MAIN = sig
-  val run_in_main: (unit -> 'a Lwt.t) -> 'a
-  (** Run the given closure in the main thread *)
-end
-
-module type HVSOCK = sig
-  type t
-  (** A Hyper-V socket *)
-
-  val create: unit -> t
-  (** [create ()] creates an unbound AF_HVSOCK socket *)
-
-  val bind: t -> sockaddr -> unit
-  (** [bind t sockaddr] binds [socket] to [sockaddr] *)
-
-  val listen: t -> int -> unit
-  (** [listen t queue] *)
-
-  val accept: t -> (t * sockaddr) Lwt.t
-  (** [accept t] accepts a single connection *)
-
-  val connect: t -> sockaddr -> unit Lwt.t
-  (** [connect t sockaddr] connects to a remote partition *)
-
-  val read: t -> Cstruct.t -> int Lwt.t
-  (** [read t buf] reads as many bytes as available into [buf] returning
-      the number of bytes read. *)
-
-  val write: t -> Cstruct.t -> int Lwt.t
-  (** [write t buf] writes as many bytes from [buf] to [t] as will currently
-      fit inside [t]'s internal buffer, and return the number of bytes
-      written *)
-
-  val close: t -> unit Lwt.t
-  (** [close t] closes a socket *)
-end
+module type HVSOCK = Hvsock_s.SOCKET
+  with type sockaddr = Hvsock.sockaddr
+    and type 'a io := 'a Lwt.t
 
 module Make(Time: V1_LWT.TIME)(Main: MAIN): HVSOCK
-(** Create an HVSOCK implementation given the ability to sleep and the ability
-    to run code in the main Lwt thread *)
+(** Create a AF_HYPERV implementation of SOCKET which offloads blocking calls
+    to background OCaml threads, exposing an Lwt-based interface. *)
