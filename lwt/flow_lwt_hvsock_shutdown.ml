@@ -17,7 +17,7 @@
 
 let src =
   let src = Logs.Src.create "flow_lwt_hvsock_shutdown" ~doc:"AF_HYPERV framed messages" in
-  Logs.Src.set_level src (Some Logs.Debug);
+  Logs.Src.set_level src (Some Logs.Info);
   src
 
 module Log = (val Logs.src_log src : Logs.LOG)
