@@ -6,7 +6,7 @@ Authors:     David Scott, Rolf Neugebauer, Anil Madhavapeddy
 License:     ISC
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
-OCamlVersion: >= 4.01.0
+OCamlVersion: >= 4.02.3
 
 Library "hvsock"
   Pack:               false
