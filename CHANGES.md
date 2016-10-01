@@ -1,3 +1,8 @@
+0.10.0:
+- Port to the MirageOS 3.0 time API, and use Duration
+- Test more distributions with Travis CI Docker containers.
+- Minimum supported OCaml version is now 4.02.3 due to Mirage3.
+
 0.9.0
 - Fix the signatures of the hvsock C stubs to include `unit` arg.
 

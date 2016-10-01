@@ -1,6 +1,6 @@
 opam-version: "1.2"
 maintainer: "dave@recoil.org"
-authors: [ "David Scott" "Rolf Neugebauer"]
+authors: [ "David Scott" "Rolf Neugebauer" "Anil Madhavapeddy"]
 license: "ISC"
 homepage: "https://github.com/djs55/ocaml-hvsock"
 dev-repo: "https://github.com/djs55/ocaml-hvsock.git"
@@ -24,12 +24,13 @@ depends: [
   "fmt"
   "base-unix"
   "cmdliner"
-  "mirage-types-lwt"
+  "mirage-types-lwt" {>="3.0"}
   "mirage-flow"
   "cstruct"
+  "duration"
   "ocamlfind" {build}
   "ocamlbuild" {build}
   "alcotest" {test & >= "0.4.0"}
 ]
 
-available: [ ocaml-version >= "4.01.0" ]
+available: [ ocaml-version >= "4.02.3" ]

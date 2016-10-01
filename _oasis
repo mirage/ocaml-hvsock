@@ -1,12 +1,12 @@
 OASISFormat: 0.3
 Name:        hvsock
-Version:     0.9.0
+Version:     0.10.0
 Synopsis:    Hyper-V sockets
-Authors:     David Scott, Rolf Neugebauer
+Authors:     David Scott, Rolf Neugebauer, Anil Madhavapeddy
 License:     ISC
-Plugins:     META (0.3), DevFiles (0.4)
+Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
-OCamlVersion: >= 4.01.0
+OCamlVersion: >= 4.02.3
 
 Library "hvsock"
   Pack:               false
@@ -25,7 +25,7 @@ Library "hvsock_lwt"
   Findlibparent:      hvsock
   Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown
   BuildDepends:       lwt, hvsock, bytes, mirage-types.lwt, cstruct,
-    mirage-flow, logs, threads
+    mirage-flow, logs, threads, duration
 
 Library "hvsock_lwt_unix"
   Pack:               false
