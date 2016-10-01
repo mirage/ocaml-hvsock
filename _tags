@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 959ed78314ff71b9572a5421b3c5fcbb)
+# DO NOT EDIT (digest: f43e2e497faeae9de3ce905ce3423baf)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -23,6 +23,7 @@ true: annot, bin_annot
 "lwt/hvsock_lwt.cmxs": use_hvsock_lwt
 <lwt/*.ml{,i,y}>: package(bytes)
 <lwt/*.ml{,i,y}>: package(cstruct)
+<lwt/*.ml{,i,y}>: package(duration)
 <lwt/*.ml{,i,y}>: package(logs)
 <lwt/*.ml{,i,y}>: package(lwt)
 <lwt/*.ml{,i,y}>: package(mirage-flow)
@@ -34,6 +35,7 @@ true: annot, bin_annot
 "lwt_unix/hvsock_lwt_unix.cmxs": use_hvsock_lwt_unix
 <lwt_unix/*.ml{,i,y}>: package(bytes)
 <lwt_unix/*.ml{,i,y}>: package(cstruct)
+<lwt_unix/*.ml{,i,y}>: package(duration)
 <lwt_unix/*.ml{,i,y}>: package(logs)
 <lwt_unix/*.ml{,i,y}>: package(lwt)
 <lwt_unix/*.ml{,i,y}>: package(lwt.preemptive)
@@ -47,6 +49,7 @@ true: annot, bin_annot
 <src/hvcat.{native,byte}>: package(bytes)
 <src/hvcat.{native,byte}>: package(cmdliner)
 <src/hvcat.{native,byte}>: package(cstruct)
+<src/hvcat.{native,byte}>: package(duration)
 <src/hvcat.{native,byte}>: package(logs)
 <src/hvcat.{native,byte}>: package(lwt)
 <src/hvcat.{native,byte}>: package(lwt.preemptive)
@@ -61,6 +64,7 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: package(bytes)
 <src/*.ml{,i,y}>: package(cmdliner)
 <src/*.ml{,i,y}>: package(cstruct)
+<src/*.ml{,i,y}>: package(duration)
 <src/*.ml{,i,y}>: package(logs)
 <src/*.ml{,i,y}>: package(lwt)
 <src/*.ml{,i,y}>: package(lwt.preemptive)

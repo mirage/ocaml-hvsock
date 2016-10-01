@@ -1,3 +1,6 @@
+0.10.0:
+- Port to the MirageOS 3.0 time API, and use Duration
+
 0.9.0
 - Fix the signatures of the hvsock C stubs to include `unit` arg.
 
