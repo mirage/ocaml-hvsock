@@ -151,7 +151,7 @@ let connect t addr = match t with
       >>= fun () ->
       Lwt.return true in
     let timeout_t =
-      Time.sleep_ns (Duration.of_sec 1)
+      Time.sleep 1.
       >>= fun () ->
       Lwt.return false in
     Lwt.choose [ connect_t; timeout_t ]
