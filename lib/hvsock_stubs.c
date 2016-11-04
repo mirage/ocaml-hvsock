@@ -158,9 +158,9 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
   int wsaErr;
-	fd_set fds;
+  fd_set fds;
   struct timeval timeout;
-	unsigned long nonBlocking = 1, blocking = 0;
+  unsigned long nonBlocking = 1, blocking = 0;
 
   sa.Family = AF_HYPERV;
   sa.Reserved = 0;
@@ -171,7 +171,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     caml_failwith("Failed to parse serviceid");
   }
 
-	ioctlsocket(fd, FIONBIO, &nonBlocking);
+  ioctlsocket(fd, FIONBIO, &nonBlocking);
   res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
 
   if (res == SOCKET_ERROR) {
@@ -193,7 +193,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
       }
     }
   }
-	ioctlsocket(fd, FIONBIO, &blocking);
+  ioctlsocket(fd, FIONBIO, &blocking);
   CAMLreturn(Val_unit);
 }
 #else
@@ -204,7 +204,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   SOCKET res = INVALID_SOCKET;
   int err;
   struct pollfd pollInfo = { 0 };
-	int flags = fcntl(s.get(), F_GETFL, 0);
+  int flags = fcntl(fd, F_GETFL, 0);
 
   pollInfo.fd = fd;
   pollInfo.events = POLLOUT;
@@ -217,7 +217,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     caml_failwith("Failed to parse serviceid");
   }
   
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
   res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
 
   if (res == SOCKET_ERROR) {
@@ -234,7 +234,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
       caml_failwith("Failed to connect");
     }    
   }
-	fcntl(fd, F_SETFL, flags);
+  fcntl(fd, F_SETFL, flags);
   CAMLreturn(Val_unit);
 }
 #endif
