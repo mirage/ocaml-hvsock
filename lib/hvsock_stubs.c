@@ -203,7 +203,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
   int err;
-  pollfd pollInfo = { 0 };
+  struct pollfd pollInfo = { 0 };
 	int flags = fcntl(s.get(), F_GETFL, 0);
 
   pollInfo.fd = fd;
