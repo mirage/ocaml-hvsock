@@ -24,7 +24,7 @@ depends: [
   "fmt"
   "base-unix"
   "cmdliner"
-  "mirage-types-lwt" {>= "2.0" & <"3.0"}
+  "mirage-types-lwt" {>="3.0"}
   "mirage-flow"
   "cstruct"
   "duration"
