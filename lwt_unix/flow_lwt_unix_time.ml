@@ -16,4 +16,4 @@
  *)
 type 'a io = 'a Lwt.t
 
-let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
+let sleep = Lwt_unix.sleep
