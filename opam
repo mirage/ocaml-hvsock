@@ -1,6 +1,6 @@
 opam-version: "1.2"
 maintainer: "dave@recoil.org"
-authors: [ "David Scott" "Rolf Neugebauer" "Anil Madhavapeddy"]
+authors: [ "David Scott" "Rolf Neugebauer" "Anil Madhavapeddy" "Simon Ferquel"]
 license: "ISC"
 homepage: "https://github.com/djs55/ocaml-hvsock"
 dev-repo: "https://github.com/djs55/ocaml-hvsock.git"
