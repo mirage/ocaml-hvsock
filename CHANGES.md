@@ -1,9 +1,12 @@
-0.10.0:
-- Port to the MirageOS 3.0 time API, and use Duration
-- Test more distributions with Travis CI Docker containers.
-- Minimum supported OCaml version is now 4.02.3 due to Mirage3.
+0.11.0 (2016-11-14):
+- make connection fail within 30ms rather than 1s
+- increase test coverage with more distros
 
-0.9.0
+0.10.0 (2016-07-25):
+- major bug fixes in the Flow_lwt_hvsock_shutdown module
+- extra robustness in case of unexpected errors from the Win32 API
+
+0.9.0 (2016-07-14):
 - Fix the signatures of the hvsock C stubs to include `unit` arg.
 
 0.8.1 (2016-07-11)

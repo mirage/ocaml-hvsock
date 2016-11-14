@@ -1,8 +1,8 @@
 OASISFormat: 0.3
 Name:        hvsock
-Version:     0.10.0
+Version:     0.11.0
 Synopsis:    Hyper-V sockets
-Authors:     David Scott, Rolf Neugebauer, Anil Madhavapeddy
+Authors:     David Scott, Rolf Neugebauer, Anil Madhavapeddy, Simon Ferquel
 License:     ISC
 Plugins:     META (0.4), DevFiles (0.4)
 BuildTools:  ocamlbuild
