@@ -30,6 +30,10 @@
 #include <caml/unixsupport.h>
 #include <caml/callback.h>
 
+#ifndef WIN32
+#include <fcntl.h>
+#include <poll.h>
+#endif
 
 /* Helper macros for parsing/printing GUIDs */
 #define GUID_FMT "%08x-%04hx-%04hx-%02x%02x-%02x%02x%02x%02x%02x%02x"
@@ -147,11 +151,16 @@ CAMLprim value stub_hvsock_accept(value sock){
   CAMLreturn(result);
 }
 
+#ifdef WIN32
 CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   CAMLparam3(sock, vmid, serviceid);
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
+  int wsaErr;
+  fd_set fds;
+  struct timeval timeout;
+  unsigned long nonBlocking = 1, blocking = 0;
 
   sa.Family = AF_HYPERV;
   sa.Reserved = 0;
@@ -162,16 +171,73 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     caml_failwith("Failed to parse serviceid");
   }
 
-  caml_release_runtime_system();
+  ioctlsocket(fd, FIONBIO, &nonBlocking);
   res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
-  caml_acquire_runtime_system();
 
   if (res == SOCKET_ERROR) {
-    win32_maperr(WSAGetLastError());
-    uerror("connect", Nothing);
+    wsaErr = WSAGetLastError();
+    if (wsaErr != WSAEWOULDBLOCK)
+    {
+      win32_maperr(WSAGetLastError());
+      uerror("connect", Nothing);
+      caml_failwith("Failed to connect");
+    } else {
+      FD_ZERO(&fds);
+		  FD_SET(fd, &fds);
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 1000 * 30; // 30ms is long enough for hv_socks
+      if (select(1, NULL, &fds, NULL, &timeout) != 1){
+        win32_maperr(WSAGetLastError());
+        uerror("connect", Nothing);
+        caml_failwith("Failed to connect");
+      }
+    }
   }
+  ioctlsocket(fd, FIONBIO, &blocking);
   CAMLreturn(Val_unit);
 }
+#else
+CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
+  CAMLparam3(sock, vmid, serviceid);
+  SOCKADDR_HV sa;
+  SOCKET fd = Socket_val(sock);
+  SOCKET res = INVALID_SOCKET;
+  int err;
+  struct pollfd pollInfo = { 0 };
+  int flags = fcntl(fd, F_GETFL, 0);
+
+  pollInfo.fd = fd;
+  pollInfo.events = POLLOUT;
+  sa.Family = AF_HYPERV;
+  sa.Reserved = 0;
+  if (parseguid(String_val(vmid), &sa.VmId) != 0) {
+    caml_failwith("Failed to parse vmid");
+  }
+  if (parseguid(String_val(serviceid), &sa.ServiceId) != 0) {
+    caml_failwith("Failed to parse serviceid");
+  }
+  
+  fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+  res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
+
+  if (res == SOCKET_ERROR) {
+    err = errno;
+    if (err != EINPROGRESS)
+    {
+      uerror("connect", Nothing);
+      caml_failwith("Failed to connect");
+    } 
+    else if (poll(&pollInfo, 1, 30) != 1)
+    {
+      win32_maperr(WSAGetLastError());
+      uerror("connect", Nothing);
+      caml_failwith("Failed to connect");
+    }    
+  }
+  fcntl(fd, F_SETFL, flags);
+  CAMLreturn(Val_unit);
+}
+#endif
 
 CAMLprim value
 stub_hvsock_ba_recv(value fd, value val_buf, value val_ofs, value val_len)

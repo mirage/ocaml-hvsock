@@ -21,8 +21,8 @@
 #ifdef WIN32
 #undef UNICODE
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #include <ws2tcpip.h>
 /* from hvsocket.h */
 #define AF_HYPERV 34

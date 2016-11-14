@@ -143,24 +143,14 @@ let accept = function
 let connect t addr = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "connect", ""))
   | { fd = Some x } ->
-    (* If the server isn't listening then connect blocks forever.
-       Declare a timeout and a failed connect results in a closed fd
-       and an ECONNREFUSED *)
-    let connect_t =
-      detach (connect x) addr
-      >>= fun () ->
-      Lwt.return true in
-    let timeout_t =
-      Time.sleep 1.
-      >>= fun () ->
-      Lwt.return false in
-    Lwt.choose [ connect_t; timeout_t ]
-    >>= fun ok ->
-    if not ok then begin
-      close t
-      >>= fun () ->
-      Lwt.fail (Unix.Unix_error(Unix.ECONNREFUSED, "connect", ""))
-    end else Lwt.return_unit
+    try 
+      connect x addr;
+      Lwt.return_unit
+    with
+      Failure _ ->  begin
+        close t
+        >>= fun() -> Lwt.fail (Unix.Unix_error(Unix.ECONNREFUSED, "connect", ""))
+      end
 
 let read t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
