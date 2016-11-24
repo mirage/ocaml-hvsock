@@ -1,3 +1,7 @@
+0.11.1 (2016-11-23):
+- make connection fail within 300ms rather than 30ms to work better
+  on virtualised systems
+
 0.11.0 (2016-11-14):
 - make connection fail within 30ms rather than 1s
 - increase test coverage with more distros
