@@ -20,4 +20,4 @@
 
  val connect: Hvsock.t -> flow
 
- val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+ val read_into: flow -> Cstruct.t -> ([> `Done | `Eof ], [>`Msg of string]) Result.result Lwt.t

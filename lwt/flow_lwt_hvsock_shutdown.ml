@@ -95,11 +95,11 @@ let connect fd =
 let really_write fd buffer =
   let rec loop remaining =
     if Cstruct.len remaining = 0
-    then Lwt.return (`Ok ())
+    then Lwt.return (Ok ())
     else
       Hvsock.write fd remaining
       >>= function
-      | 0 -> Lwt.return (`Eof)
+      | 0 -> Lwt.return (Error `Closed)
       | n ->
         loop (Cstruct.shift remaining n) in
   Lwt.catch
@@ -109,21 +109,21 @@ let really_write fd buffer =
       (* ECONNRESET is common but other errors may be possible. Whatever the
          error we should treat it as Eof. *)
       | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
-        Lwt.return `Eof
+        Lwt.return (Error `Closed)
       | e ->
         Log.err (fun f -> f "Hvsock.write: %s" (Printexc.to_string e));
-        Lwt.return `Eof
+        Lwt.return (Error `Closed)
     )
 
 (* Read a whole buffer from the fd, without any encapsulation *)
 let really_read fd buffer =
   let rec loop remaining =
     if Cstruct.len remaining = 0
-    then Lwt.return (`Ok ())
+    then Lwt.return (Ok `Done)
     else
       Hvsock.read fd remaining
       >>= function
-      | 0 -> Lwt.return (`Eof)
+      | 0 -> Lwt.return (Ok `Eof)
       | n ->
         loop (Cstruct.shift remaining n) in
   Lwt.catch
@@ -133,10 +133,10 @@ let really_read fd buffer =
       (* ECONNRESET is common but other errors may be possible. Whatever the
          error we should treat it as Eof. *)
       | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
-        Lwt.return `Eof
+        Lwt.return (Ok `Eof)
       | e ->
         Log.err (fun f -> f "Hvsock.read: %s" (Printexc.to_string e));
-        Lwt.return `Eof
+        Lwt.return (Ok `Eof)
     )
 
 let shutdown_write flow =
@@ -150,10 +150,10 @@ let shutdown_write flow =
         Log.debug (fun f -> f "TX ShutdownWrite");
         really_write flow.fd flow.write_header_buffer
         >>= function
-        | `Eof ->
+        | Ok () ->
           Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
-          Lwt.return ()
-        | `Ok () -> Lwt.return ()
+          Lwt.return_unit
+        | Error `Closed -> Lwt.return_unit
       )
   end
 
@@ -168,10 +168,10 @@ let shutdown_read flow =
         Log.debug (fun f -> f "TX ShutdownRead");
         really_write flow.fd flow.write_header_buffer
         >>= function
-        | `Eof ->
+        | Error `Closed ->
           Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
-          Lwt.return ()
-        | `Ok () -> Lwt.return ()
+          Lwt.return_unit
+        | Ok () -> Lwt.return_unit
       )
   end
 
@@ -189,22 +189,25 @@ let close flow =
             Message.(marshal Close flow.write_header_buffer);
             really_write flow.fd flow.write_header_buffer
             >>= function
-            | `Eof -> Lwt.return ()
-            | `Ok () ->
+            | Error `Closed -> Lwt.return_unit
+            | Ok () ->
               let header = Cstruct.create Message.sizeof in
               let payload = Cstruct.create maxMsgSize in
               let rec wait_for_close () =
                 really_read flow.fd header
                 >>= function
-                | `Eof -> Lwt.return ()
-                | `Ok () ->
+                | Error (`Msg m) ->
+                   Log.err (fun f -> f "Read error %s" m);
+                   Lwt.return_unit
+                | Ok `Eof -> Lwt.return_unit
+                | Ok `Done ->
                   match Message.unmarshal header with
                   | Message.Close ->
                     Log.debug (fun f -> f "RX Close");
-                    Lwt.return ()
+                    Lwt.return_unit
                   | Message.ShutdownRead ->
                     Log.debug (fun f -> f "RX Close");
-                    Lwt.return ()
+                    Lwt.return_unit
                   | Message.ShutdownWrite ->
                     Log.debug (fun f -> f "RX ShutdownWrite");
                     wait_for_close ()
@@ -212,25 +215,26 @@ let close flow =
                     Log.debug (fun f -> f "RX Data %d" n);
                     really_read flow.fd (Cstruct.sub payload 0 n)
                     >>= function
-                    | `Eof -> Lwt.return ()
-                    | `Ok () -> wait_for_close () in
+                    | Ok `Eof -> Lwt.return_unit
+                    | Ok `Done -> wait_for_close ()
+                    | Error (`Msg m) -> 
+                      Log.err (fun f -> f "Read error %s" m);
+                      Lwt.return_unit
+              in
               wait_for_close ()
           )
-      ) (fun () ->
-          Hvsock.close flow.fd
-      )
-  | true ->
-    Lwt.return ()
+      ) (fun () -> Hvsock.close flow.fd)
+  | true -> Lwt.return_unit
 
 (* Write a whole buffer to the fd, in chunks according to the maximum message
    size *)
 let write flow buffer =
-  if flow.closed || flow.write_closed then Lwt.return `Eof
+  if flow.closed || flow.write_closed then Lwt.return (Error `Closed)
   else
     let rec loop remaining =
       let len = Cstruct.len remaining in
       if len = 0
-      then Lwt.return (`Ok ())
+      then Lwt.return (Ok ())
       else
         let this_batch = min len maxMsgSize in
         Lwt_mutex.with_lock flow.wlock
@@ -240,34 +244,35 @@ let write flow buffer =
             Message.(marshal (Data this_batch) flow.write_header_buffer);
             really_write flow.fd flow.write_header_buffer
             >>= function
-            | `Eof -> Lwt.return `Eof
-            | `Ok () ->
-              really_write flow.fd to_send
+            | Error `Closed -> Lwt.return (Error `Closed)
+            | Ok () -> really_write flow.fd to_send
           )
         >>= function
-        | `Eof -> Lwt.return `Eof
-        | `Ok () ->
-          loop (Cstruct.shift remaining this_batch) in
+        | Error `Closed -> Lwt.return (Error `Closed)
+        | Ok () -> loop (Cstruct.shift remaining this_batch) in
     loop buffer
 
 let read_next_chunk flow =
-  if flow.closed || flow.read_closed then Lwt.return `Eof
+  if flow.closed || flow.read_closed then Lwt.return (Ok `Eof)
   else
     let rec loop () =
       really_read flow.fd flow.read_header_buffer
       >>= function
-      | `Eof -> Lwt.return `Eof
-      | `Ok () ->
+      | Error (`Msg m) ->
+         Log.err (fun f -> f "read_next_chunk error: %s" m);
+         Lwt.return (Ok `Eof)
+      | Ok `Eof -> Lwt.return (Ok `Eof)
+      | Ok `Done ->
         match Message.unmarshal flow.read_header_buffer with
         | Message.ShutdownWrite ->
           Log.debug (fun f -> f "RX ShutdownWrite");
           flow.read_closed <- true;
-          Lwt.return `Eof
+          Lwt.return (Ok `Eof)
         | Message.Close ->
           Log.debug (fun f -> f "RX Close");
           close flow
           >>= fun () ->
-          Lwt.return `Eof
+          Lwt.return (Ok `Eof)
         | Message.ShutdownRead ->
           Log.debug (fun f -> f "RX ShutdownRead");
           flow.write_closed <- true;
@@ -277,9 +282,12 @@ let read_next_chunk flow =
           let payload = Cstruct.create n in
           really_read flow.fd payload
           >>= function
-          | `Eof -> Lwt.return `Eof
-          | `Ok () ->
-            Lwt.return (`Ok payload) in
+          | Ok `Eof -> Lwt.return (Ok `Eof)
+          | Ok `Done -> Lwt.return (Ok (`Data payload)) 
+          | Error (`Msg m) ->
+             Log.err (fun f -> f "read_next_chunk error, turning into eof: %s" m);
+             Lwt.return (Ok `Eof)
+    in
     loop ()
 
 let read flow =
@@ -291,27 +299,33 @@ let read flow =
   end else begin
     let result = flow.leftover in
     flow.leftover <- Cstruct.create 0;
-    Lwt.return (`Ok result)
+    Lwt.return (Ok (`Data result))
   end
 
 let rec read_into flow buf =
   if Cstruct.len buf = 0
-  then Lwt.return (`Ok ())
+  then Lwt.return (Ok `Done)
   else begin
     if Cstruct.len flow.leftover = 0 then begin
       Lwt_mutex.with_lock flow.rlock
         (fun () ->
           read_next_chunk flow
           >>= function
-          | `Eof -> Lwt.return `Eof
-          | `Ok payload ->
+          | Error (`Msg m) ->
+             Log.err (fun f -> f "read_into error, turning into eof: %s" m);
+             Lwt.return (Ok `Eof)
+          | Ok `Eof -> Lwt.return (Ok `Eof)
+          | Ok (`Data payload) ->
             let to_consume = min (Cstruct.len buf) (Cstruct.len payload) in
             Cstruct.blit payload 0 buf 0 to_consume;
             flow.leftover <- Cstruct.shift payload to_consume;
-            Lwt.return (`Ok (Cstruct.shift buf to_consume))
+            Lwt.return (Ok (`Data (Cstruct.shift buf to_consume)))
         ) >>= function
-        | `Eof -> Lwt.return `Eof
-        | `Ok buf -> read_into flow buf
+        | Ok `Eof -> Lwt.return (Ok `Eof)
+        | Ok (`Data buf) -> read_into flow buf
+        | Error (`Msg m) ->
+            Log.err (fun f -> f "read_into error, turning into eof: %s" m);
+            Lwt.return (Ok `Eof)
     end else begin
       let to_consume = min (Cstruct.len buf) (Cstruct.len flow.leftover) in
       Cstruct.blit flow.leftover 0 buf 0 to_consume;
@@ -322,11 +336,11 @@ let rec read_into flow buf =
 
 let writev flow bufs =
   let rec loop = function
-    | [] -> Lwt.return (`Ok ())
+    | [] -> Lwt.return (Ok ())
     | x :: xs ->
       write flow x
       >>= function
-      | `Eof -> Lwt.return `Eof
-      | `Ok () -> loop xs in
+      | Error `Closed -> Lwt.return (Error `Closed)
+      | Ok () -> loop xs in
   loop bufs
 end
