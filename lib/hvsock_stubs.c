@@ -157,10 +157,10 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
-  int wsaErr;
   fd_set fds;
   struct timeval timeout;
   unsigned long nonBlocking = 1, blocking = 0;
+  DWORD err = 0;
 
   sa.Family = AF_HYPERV;
   sa.Reserved = 0;
@@ -171,23 +171,28 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     caml_failwith("Failed to parse serviceid");
   }
 
+  caml_release_runtime_system();
   ioctlsocket(fd, FIONBIO, &nonBlocking);
   res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
+  if (res == SOCKET_ERROR) err = WSAGetLastError();
+  caml_acquire_runtime_system();
 
   if (res == SOCKET_ERROR) {
-    wsaErr = WSAGetLastError();
-    if (wsaErr != WSAEWOULDBLOCK)
+    if (err != WSAEWOULDBLOCK)
     {
-      win32_maperr(WSAGetLastError());
+      win32_maperr(err);
       uerror("connect", Nothing);
     } else {
       FD_ZERO(&fds);
 		  FD_SET(fd, &fds);
       timeout.tv_sec = 0;
       timeout.tv_usec = 1000 * 300; // 300ms is long enough for hv_socks
+      caml_release_runtime_system();
       res = select(1, NULL, &fds, NULL, &timeout);
+      if (res == SOCKET_ERROR) err = WSAGetLastError();
+      caml_acquire_runtime_system();
       if (res == SOCKET_ERROR) {
-        win32_maperr(WSAGetLastError());
+        win32_maperr(err);
         uerror("connect", Nothing);
       }
       if (res == 0) {
@@ -197,7 +202,9 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
       }
     }
   }
+  caml_release_runtime_system();
   ioctlsocket(fd, FIONBIO, &blocking);
+  caml_acquire_runtime_system();
   CAMLreturn(Val_unit);
 }
 #else
@@ -206,7 +213,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
-  int err;
+  DWORD err;
   struct pollfd pollInfo = { 0 };
   int flags = fcntl(fd, F_GETFL, 0);
 
@@ -220,20 +227,26 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   if (parseguid(String_val(serviceid), &sa.ServiceId) != 0) {
     caml_failwith("Failed to parse serviceid");
   }
-  
+
+  caml_release_runtime_system();
   fcntl(fd, F_SETFL, flags | O_NONBLOCK);
   res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
+  if (res == SOCKET_ERROR) err = errno;
+  caml_acquire_runtime_system();
 
   if (res == SOCKET_ERROR) {
-    err = errno;
     if (err != EINPROGRESS)
     {
       uerror("connect", Nothing);
     }
+    caml_release_runtime_system();
     res = poll(&pollInfo, 1, 300);
+    if (res == SOCKET_ERROR) err = WSAGetLastError();
+    caml_acquire_runtime_system();
+
     if (res == -1)
     {
-      win32_maperr(WSAGetLastError());
+      win32_maperr(err);
       uerror("connect", Nothing);
     }
     if (res == 0)
@@ -243,7 +256,9 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
       uerror("connect", Nothing);
     }
   }
+  caml_release_runtime_system();
   fcntl(fd, F_SETFL, flags);
+  caml_acquire_runtime_system();
   CAMLreturn(Val_unit);
 }
 #endif
