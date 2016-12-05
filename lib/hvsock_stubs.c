@@ -180,7 +180,6 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     {
       win32_maperr(WSAGetLastError());
       uerror("connect", Nothing);
-      caml_failwith("Failed to connect");
     } else {
       FD_ZERO(&fds);
 		  FD_SET(fd, &fds);
@@ -230,14 +229,12 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     if (err != EINPROGRESS)
     {
       uerror("connect", Nothing);
-      caml_failwith("Failed to connect");
     }
     res = poll(&pollInfo, 1, 300);
     if (res == -1)
     {
       win32_maperr(WSAGetLastError());
       uerror("connect", Nothing);
-      caml_failwith("Failed to connect");
     }
     if (res == 0)
     {
