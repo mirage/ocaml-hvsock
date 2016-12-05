@@ -186,10 +186,15 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
 		  FD_SET(fd, &fds);
       timeout.tv_sec = 0;
       timeout.tv_usec = 1000 * 300; // 300ms is long enough for hv_socks
-      if (select(1, NULL, &fds, NULL, &timeout) != 1){
+      res = select(1, NULL, &fds, NULL, &timeout);
+      if (res == SOCKET_ERROR) {
         win32_maperr(WSAGetLastError());
         uerror("connect", Nothing);
-        caml_failwith("Failed to connect");
+      }
+      if (res == 0) {
+        /* Timeout */
+        errno = ETIMEDOUT;
+        uerror("connect", Nothing);
       }
     }
   }
