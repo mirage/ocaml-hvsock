@@ -231,13 +231,20 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     {
       uerror("connect", Nothing);
       caml_failwith("Failed to connect");
-    } 
-    else if (poll(&pollInfo, 1, 300) != 1)
+    }
+    res = poll(&pollInfo, 1, 300);
+    if (res == -1)
     {
       win32_maperr(WSAGetLastError());
       uerror("connect", Nothing);
       caml_failwith("Failed to connect");
-    }    
+    }
+    if (res == 0)
+    {
+      /* Timeout */
+      errno = ETIMEDOUT;
+      uerror("connect", Nothing);
+    }
   }
   fcntl(fd, F_SETFL, flags);
   CAMLreturn(Val_unit);
