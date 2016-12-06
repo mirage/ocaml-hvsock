@@ -152,8 +152,8 @@ CAMLprim value stub_hvsock_accept(value sock){
 }
 
 #ifdef WIN32
-CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
-  CAMLparam3(sock, vmid, serviceid);
+CAMLprim value stub_hvsock_connect(value timeout_ms, value sock, value vmid, value serviceid){
+  CAMLparam4(timeout_ms, sock, vmid, serviceid);
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
@@ -185,8 +185,8 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
     } else {
       FD_ZERO(&fds);
 		  FD_SET(fd, &fds);
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 1000 * 300; // 300ms is long enough for hv_socks
+      timeout.tv_sec = Int_val(timeout_ms) / 1000;
+      timeout.tv_usec = (Int_val(timeout_ms) % 1000) * 1000;
       caml_release_runtime_system();
       res = select(1, NULL, &fds, NULL, &timeout);
       if (res == SOCKET_ERROR) err = WSAGetLastError();
@@ -208,8 +208,8 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
   CAMLreturn(Val_unit);
 }
 #else
-CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
-  CAMLparam3(sock, vmid, serviceid);
+CAMLprim value stub_hvsock_connect(value timeout_ms, value sock, value vmid, value serviceid){
+  CAMLparam4(timeout_ms, sock, vmid, serviceid);
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
   SOCKET res = INVALID_SOCKET;
@@ -240,7 +240,7 @@ CAMLprim value stub_hvsock_connect(value sock, value vmid, value serviceid){
       uerror("connect", Nothing);
     }
     caml_release_runtime_system();
-    res = poll(&pollInfo, 1, 300);
+    res = poll(&pollInfo, 1, Int_val(timeout_ms));
     if (res == SOCKET_ERROR) err = WSAGetLastError();
     caml_acquire_runtime_system();
 

@@ -38,8 +38,8 @@ module type HVSOCK = sig
   val accept: t -> (t * sockaddr) Lwt.t
   (** [accept t] accepts a single connection *)
 
-  val connect: t -> sockaddr -> unit Lwt.t
-  (** [connect t sockaddr] connects to a remote partition *)
+  val connect: ?timeout_ms:int -> t -> sockaddr -> unit Lwt.t
+  (** [connect ?timeout_ms t sockaddr] connects to a remote partition *)
 
   val read: t -> Cstruct.t -> int Lwt.t
   (** [read t buf] reads as many bytes as available into [buf] returning
