@@ -33,6 +33,8 @@
 #ifndef WIN32
 #include <fcntl.h>
 #include <poll.h>
+#else
+#define ETIMEDOUT -WSAETIMEDOUT
 #endif
 
 /* Helper macros for parsing/printing GUIDs */
