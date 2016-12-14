@@ -10,10 +10,10 @@ env:
    - PRE_INSTALL_HOOK="cd /home/opam/opam-repository && git pull origin master && opam update -u -y"
    - PACKAGE="hvsock"
  matrix:
-   - DISTRO=debian-stable OCAML_VERSION=4.02.3
+   - DISTRO=debian-stable OCAML_VERSION=4.03.0
    - DISTRO=debian-testing OCAML_VERSION=4.03.0
-   - DISTRO=debian-unstable OCAML_VERSION=4.02.3
+   - DISTRO=debian-unstable OCAML_VERSION=4.04.0
    - DISTRO=ubuntu-16.04 OCAML_VERSION=4.03.0
-   - DISTRO=centos-7 OCAML_VERSION=4.02.3
-   - DISTRO=fedora-24 OCAML_VERSION=4.02.3
+   - DISTRO=centos-7 OCAML_VERSION=4.03.0
+   - DISTRO=fedora-24 OCAML_VERSION=4.03.0
    - DISTRO=alpine-3.4 OCAML_VERSION=4.03.0

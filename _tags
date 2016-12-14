@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: f43e2e497faeae9de3ce905ce3423baf)
+# DO NOT EDIT (digest: d09e15991a29423a9553acc18f68e486)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -27,7 +27,7 @@ true: annot, bin_annot
 <lwt/*.ml{,i,y}>: package(logs)
 <lwt/*.ml{,i,y}>: package(lwt)
 <lwt/*.ml{,i,y}>: package(mirage-flow)
-<lwt/*.ml{,i,y}>: package(mirage-types.lwt)
+<lwt/*.ml{,i,y}>: package(mirage-types-lwt)
 <lwt/*.ml{,i,y}>: package(threads)
 <lwt/*.ml{,i,y}>: package(unix)
 <lwt/*.ml{,i,y}>: use_hvsock
@@ -40,7 +40,7 @@ true: annot, bin_annot
 <lwt_unix/*.ml{,i,y}>: package(lwt)
 <lwt_unix/*.ml{,i,y}>: package(lwt.preemptive)
 <lwt_unix/*.ml{,i,y}>: package(mirage-flow)
-<lwt_unix/*.ml{,i,y}>: package(mirage-types.lwt)
+<lwt_unix/*.ml{,i,y}>: package(mirage-types-lwt)
 <lwt_unix/*.ml{,i,y}>: package(threads)
 <lwt_unix/*.ml{,i,y}>: package(unix)
 <lwt_unix/*.ml{,i,y}>: use_hvsock
@@ -55,7 +55,7 @@ true: annot, bin_annot
 <src/hvcat.{native,byte}>: package(lwt.preemptive)
 <src/hvcat.{native,byte}>: package(lwt.unix)
 <src/hvcat.{native,byte}>: package(mirage-flow)
-<src/hvcat.{native,byte}>: package(mirage-types.lwt)
+<src/hvcat.{native,byte}>: package(mirage-types-lwt)
 <src/hvcat.{native,byte}>: package(threads)
 <src/hvcat.{native,byte}>: package(unix)
 <src/hvcat.{native,byte}>: use_hvsock
@@ -70,7 +70,7 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: package(lwt.preemptive)
 <src/*.ml{,i,y}>: package(lwt.unix)
 <src/*.ml{,i,y}>: package(mirage-flow)
-<src/*.ml{,i,y}>: package(mirage-types.lwt)
+<src/*.ml{,i,y}>: package(mirage-types-lwt)
 <src/*.ml{,i,y}>: package(threads)
 <src/*.ml{,i,y}>: package(unix)
 <src/*.ml{,i,y}>: use_hvsock
