@@ -66,7 +66,7 @@ external do_bind: Unix.file_descr -> string -> string -> unit = "stub_hvsock_bin
 
 external do_accept: Unix.file_descr -> Unix.file_descr * string * string = "stub_hvsock_accept"
 
-external do_connect: Unix.file_descr -> string -> string -> unit = "stub_hvsock_connect"
+external do_connect: int -> Unix.file_descr -> string -> string -> unit = "stub_hvsock_connect"
 
 let create = do_socket
 
@@ -77,4 +77,4 @@ let accept fd =
   let vmid = vmid_of_string vmid in
   fd, { vmid; serviceid }
 
-let connect fd { vmid; serviceid } = do_connect fd (string_of_vmid vmid) serviceid
+let connect ?(timeout_ms=300) fd { vmid; serviceid } = do_connect timeout_ms fd (string_of_vmid vmid) serviceid

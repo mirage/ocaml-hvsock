@@ -38,7 +38,7 @@ module type HVSOCK = sig
   val bind: t -> sockaddr -> unit
   val listen: t -> int -> unit
   val accept: t -> (t * sockaddr) Lwt.t
-  val connect: t -> sockaddr -> unit Lwt.t
+  val connect: ?timeout_ms:int -> t -> sockaddr -> unit Lwt.t
   val read: t -> Cstruct.t -> int Lwt.t
   val write: t -> Cstruct.t -> int Lwt.t
   val close: t -> unit Lwt.t
@@ -140,17 +140,10 @@ let accept = function
     >>= fun (y, addr) ->
     Lwt.return (make y, addr)
 
-let connect t addr = match t with
+let connect ?timeout_ms t addr = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "connect", ""))
   | { fd = Some x } ->
-    try 
-      connect x addr;
-      Lwt.return_unit
-    with
-      Failure _ ->  begin
-        close t
-        >>= fun() -> Lwt.fail (Unix.Unix_error(Unix.ECONNREFUSED, "connect", ""))
-      end
+    detach (connect ?timeout_ms x) addr
 
 let read t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
