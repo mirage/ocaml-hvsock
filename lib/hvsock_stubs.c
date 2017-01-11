@@ -153,8 +153,34 @@ CAMLprim value stub_hvsock_accept(value sock){
   CAMLreturn(result);
 }
 
+CAMLprim value stub_hvsock_connect_blocking(value sock, value vmid, value serviceid){
+  CAMLparam3(sock, vmid, serviceid);
+  SOCKADDR_HV sa;
+  SOCKET fd = Socket_val(sock);
+  SOCKET res = INVALID_SOCKET;
+
+  sa.Family = AF_HYPERV;
+  sa.Reserved = 0;
+  if (parseguid(String_val(vmid), &sa.VmId) != 0) {
+    caml_failwith("Failed to parse vmid");
+  }
+  if (parseguid(String_val(serviceid), &sa.ServiceId) != 0) {
+    caml_failwith("Failed to parse serviceid");
+  }
+
+  caml_release_runtime_system();
+  res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
+  caml_acquire_runtime_system();
+
+  if (res == SOCKET_ERROR) {
+    win32_maperr(WSAGetLastError());
+    uerror("connect", Nothing);
+  }
+  CAMLreturn(Val_unit);
+}
+
 #ifdef WIN32
-CAMLprim value stub_hvsock_connect(value timeout_ms, value sock, value vmid, value serviceid){
+CAMLprim value stub_hvsock_connect_nonblocking(value timeout_ms, value sock, value vmid, value serviceid){
   CAMLparam4(timeout_ms, sock, vmid, serviceid);
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
@@ -210,7 +236,7 @@ CAMLprim value stub_hvsock_connect(value timeout_ms, value sock, value vmid, val
   CAMLreturn(Val_unit);
 }
 #else
-CAMLprim value stub_hvsock_connect(value timeout_ms, value sock, value vmid, value serviceid){
+CAMLprim value stub_hvsock_connect_nonblocking(value timeout_ms, value sock, value vmid, value serviceid){
   CAMLparam4(timeout_ms, sock, vmid, serviceid);
   SOCKADDR_HV sa;
   SOCKET fd = Socket_val(sock);
