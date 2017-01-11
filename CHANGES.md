@@ -1,3 +1,9 @@
+0.12.0 (2016-01-11):
+- use a blocking connect by default, rather than a 300ms delay
+- drop the OCaml heap lock in the non-blocking connect
+- run the connect function in a background thread
+- add appveyor and status badges
+
 0.11.1 (2016-11-23):
 - make connection fail within 300ms rather than 30ms to work better
   on virtualised systems
