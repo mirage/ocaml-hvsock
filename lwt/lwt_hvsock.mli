@@ -57,3 +57,21 @@ end
 module Make(Time: V1_LWT.TIME)(Main: MAIN): HVSOCK
 (** Create an HVSOCK implementation given the ability to sleep and the ability
     to run code in the main Lwt thread *)
+
+module type FN = sig
+  (** Call a blocking ('a -> 'b) function in a ('a -> 'b Lwt.t) context *)
+
+  type ('request, 'response) t
+  (** A function from 'request to 'response *)
+
+  val create: ('request -> 'response) -> ('request, 'response) t
+  val destroy: ('request, 'response) t -> unit
+
+  val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
+  (** Apply the function *)
+
+end
+
+module Run_in_thread(Main: MAIN): FN
+(** A function from 'request to 'response which is run in a single worker
+    thread, signalled via Lwt_stream *)
