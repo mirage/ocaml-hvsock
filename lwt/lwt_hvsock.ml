@@ -58,45 +58,51 @@ type ('a, 'b) r =
 
 type result = (int, exn) r
 
-type request = {
+type op = {
   file_descr: Unix.file_descr;
   buf: Cstruct.t;
-  result: int Lwt.u;
+}
+
+type ('request, 'response) fn = {
+  request: 'request;
+  response: 'response Lwt.u;
 }
 
 module Make(Time: V1_LWT.TIME)(Main: MAIN) = struct
 type t = {
   mutable fd: Unix.file_descr option;
-  push_read_request: request option -> unit;
-  push_write_request: request option -> unit;
+  push_read: (op, int) fn option -> unit;
+  push_write: (op, int) fn option -> unit;
 }
 
-let rec handle_requests blocking_op requests =
+let rec handle_requests blocking_op calls =
   match Main.run_in_main (fun () ->
     Lwt.catch
-      (fun () -> Lwt_stream.next requests >>= fun x -> Lwt.return (Some x))
+      (fun () -> Lwt_stream.next calls >>= fun x -> Lwt.return (Some x))
       (fun _ -> Lwt.return None)
     ) with
   | None -> ()
   | Some r ->
-    let result =
+    let response =
       try
-        Ok (blocking_op r.file_descr r.buf)
+        Ok (blocking_op r.request)
       with
       | e -> Error e in
     Main.run_in_main (fun () ->
-      match result with
-      | Ok x -> Lwt.wakeup_later r.result x; Lwt.return_unit
-      | Error e -> Lwt.wakeup_later_exn r.result e; Lwt.return_unit
+      match response with
+      | Ok x -> Lwt.wakeup_later r.response x; Lwt.return_unit
+      | Error e -> Lwt.wakeup_later_exn r.response e; Lwt.return_unit
     );
-    handle_requests blocking_op requests
+    handle_requests blocking_op calls
 
 let make fd =
-  let read_requests, push_read_request = Lwt_stream.create () in
-  let write_requests, push_write_request = Lwt_stream.create () in
-  let _reader = Thread.create (handle_requests cstruct_read) read_requests in
-  let _writer = Thread.create (handle_requests cstruct_write) write_requests in
-  { fd = Some fd; push_read_request; push_write_request; }
+  let read_requests, push_read = Lwt_stream.create () in
+  let write_requests, push_write = Lwt_stream.create () in
+  let read op = cstruct_read op.file_descr op.buf in
+  let write op = cstruct_write op.file_descr op.buf in
+  let _reader = Thread.create (handle_requests read) read_requests in
+  let _writer = Thread.create (handle_requests write) write_requests in
+  { fd = Some fd; push_read; push_write; }
 
 let create () = make (create ())
 
@@ -121,8 +127,8 @@ let close t = match t with
   | { fd = None } -> Lwt.return ()
   | { fd = Some x } ->
     t.fd <- None;
-    t.push_read_request None;
-    t.push_write_request None;
+    t.push_read None;
+    t.push_write None;
     detach Unix.close x
 
 let bind t addr = match t with
@@ -147,17 +153,17 @@ let connect ?timeout_ms t addr = match t with
 
 let read t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
-  | { fd = Some file_descr; push_read_request } ->
-    let t, result = Lwt.task () in
-    let request = { file_descr; buf; result } in
-    push_read_request (Some request);
+  | { fd = Some file_descr; push_read } ->
+    let t, response = Lwt.task () in
+    let call = { request = { file_descr; buf }; response } in
+    push_read (Some call);
     t
 
 let write t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
-  | { fd = Some file_descr; push_write_request } ->
-    let t, result = Lwt.task () in
-    let request = { file_descr; buf; result } in
-    push_write_request (Some request);
+  | { fd = Some file_descr; push_write } ->
+    let t, response = Lwt.task () in
+    let call = { request = { file_descr; buf }; response } in
+    push_write (Some call);
     t
 end
