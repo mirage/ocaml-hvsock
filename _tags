@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: f43e2e497faeae9de3ce905ce3423baf)
+# DO NOT EDIT (digest: 08033167c263039b370095f2b67c22c5)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -78,12 +78,53 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: use_hvsock_lwt_unix
 # Executable test
 <lib_test/test.{native,byte}>: package(alcotest)
+<lib_test/test.{native,byte}>: package(bytes)
+<lib_test/test.{native,byte}>: package(cstruct)
+<lib_test/test.{native,byte}>: package(duration)
+<lib_test/test.{native,byte}>: package(logs)
 <lib_test/test.{native,byte}>: package(logs.fmt)
+<lib_test/test.{native,byte}>: package(lwt)
+<lib_test/test.{native,byte}>: package(lwt.preemptive)
+<lib_test/test.{native,byte}>: package(mirage-flow)
+<lib_test/test.{native,byte}>: package(mirage-types.lwt)
+<lib_test/test.{native,byte}>: package(threads)
 <lib_test/test.{native,byte}>: package(unix)
 <lib_test/test.{native,byte}>: use_hvsock
+<lib_test/test.{native,byte}>: use_hvsock_lwt
+<lib_test/test.{native,byte}>: use_hvsock_lwt_unix
+<lib_test/*.ml{,i,y}>: use_hvsock_lwt_unix
+# Executable thread_benchmark
+<lib_test/thread_benchmark.{native,byte}>: package(alcotest)
+<lib_test/thread_benchmark.{native,byte}>: package(bytes)
+<lib_test/thread_benchmark.{native,byte}>: package(cstruct)
+<lib_test/thread_benchmark.{native,byte}>: package(duration)
+<lib_test/thread_benchmark.{native,byte}>: package(logs)
+<lib_test/thread_benchmark.{native,byte}>: package(logs.fmt)
+<lib_test/thread_benchmark.{native,byte}>: package(lwt)
+<lib_test/thread_benchmark.{native,byte}>: package(lwt.preemptive)
+<lib_test/thread_benchmark.{native,byte}>: package(mirage-flow)
+<lib_test/thread_benchmark.{native,byte}>: package(mirage-types.lwt)
+<lib_test/thread_benchmark.{native,byte}>: package(threads)
+<lib_test/thread_benchmark.{native,byte}>: package(unix)
+<lib_test/thread_benchmark.{native,byte}>: package(uwt)
+<lib_test/thread_benchmark.{native,byte}>: package(uwt.preemptive)
+<lib_test/thread_benchmark.{native,byte}>: use_hvsock
+<lib_test/thread_benchmark.{native,byte}>: use_hvsock_lwt
 <lib_test/*.ml{,i,y}>: package(alcotest)
+<lib_test/*.ml{,i,y}>: package(bytes)
+<lib_test/*.ml{,i,y}>: package(cstruct)
+<lib_test/*.ml{,i,y}>: package(duration)
+<lib_test/*.ml{,i,y}>: package(logs)
 <lib_test/*.ml{,i,y}>: package(logs.fmt)
+<lib_test/*.ml{,i,y}>: package(lwt)
+<lib_test/*.ml{,i,y}>: package(lwt.preemptive)
+<lib_test/*.ml{,i,y}>: package(mirage-flow)
+<lib_test/*.ml{,i,y}>: package(mirage-types.lwt)
+<lib_test/*.ml{,i,y}>: package(threads)
 <lib_test/*.ml{,i,y}>: package(unix)
+<lib_test/*.ml{,i,y}>: package(uwt)
+<lib_test/*.ml{,i,y}>: package(uwt.preemptive)
 <lib_test/*.ml{,i,y}>: use_hvsock
+<lib_test/*.ml{,i,y}>: use_hvsock_lwt
 # OASIS_STOP
 <lwt/*>: thread
