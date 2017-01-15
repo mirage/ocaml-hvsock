@@ -31,6 +31,7 @@ open Lwt.Infix
 module type HVSOCK = sig
   type t
   val create: unit -> t
+  val to_fd: t -> Unix.file_descr option
   val bind: t -> sockaddr -> unit
   val listen: t -> int -> unit
   val accept: t -> (t * sockaddr) Lwt.t
@@ -83,6 +84,8 @@ let make fd =
   { fd = Some fd; read; write; }
 
 let create () = make (create ())
+
+let to_fd t = t.fd
 
 let detach f x =
   let fn = Fn.create f in

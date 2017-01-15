@@ -38,6 +38,10 @@ module type HVSOCK = sig
   val create: unit -> t
   (** [create ()] creates an unbound AF_HVSOCK socket *)
 
+  val to_fd: t -> Unix.file_descr option
+  (** [to_fd t] returns the wrapped file descriptor. Note this only supports
+      blocking I/O *)
+
   val bind: t -> sockaddr -> unit
   (** [bind t sockaddr] binds [socket] to [sockaddr] *)
 
