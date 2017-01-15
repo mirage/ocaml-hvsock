@@ -72,7 +72,8 @@ Executable thread_benchmark
   CompiledObject:     best
   Path:               lib_test
   MainIs:             thread_benchmark.ml
-  BuildDepends:       hvsock.lwt, alcotest, logs.fmt, lwt.preemptive
+  BuildDepends:       hvsock.lwt, alcotest, logs.fmt, lwt.preemptive,
+    uwt, uwt.preemptive
 
 Test thread_benchmark
   Run$:               flag(tests)
