@@ -60,7 +60,7 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep = Lwt_unix.sleep
 end
-module Hv = Lwt_hvsock.Make(Time)(Lwt_preemptive)
+module Hv = Lwt_hvsock.Make(Time)(Lwt_hvsock_detach)
 
 let make_channels t =
   let read_buffer = Cstruct.create buffer_size in

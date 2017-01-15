@@ -16,7 +16,7 @@
  *
  *)
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN): sig
+module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN): sig
   include V1_LWT.FLOW
 
   module Hvsock: Lwt_hvsock.HVSOCK

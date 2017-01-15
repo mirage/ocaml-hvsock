@@ -53,9 +53,9 @@ end
 
 open Lwt.Infix
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN) = struct
 
-module Hvsock = Lwt_hvsock.Make(Time)(Main)
+module Hvsock = Lwt_hvsock.Make(Time)(Fn)
 
 type 'a io = 'a Lwt.t
 

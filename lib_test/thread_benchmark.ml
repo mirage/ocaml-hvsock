@@ -20,10 +20,10 @@ module Benchmark(Fn: Lwt_hvsock.FN) = struct
     per_sec
 end
 
-module Run_in_thread = Benchmark(Lwt_hvsock.Run_in_thread(Lwt_preemptive))
-module Run_with_detach = Benchmark(Lwt_hvsock.Run_with_detach)
+module Run_in_thread = Benchmark(Lwt_hvsock_main_thread.Make(Lwt_preemptive))
+module Run_with_detach = Benchmark(Lwt_hvsock_detach)
 
 let () =
   Logs.set_reporter (Logs_fmt.reporter ());
-  Printf.printf "Run_in_thread:   %.1f calls per second\n" (Run_in_thread.run ());
-  Printf.printf "Run_with_detach: %.1f calls per second\n" (Run_with_detach.run ())
+  Printf.printf "Lwt_hvsock_main_thread: %.1f calls per second\n" (Run_in_thread.run ());
+  Printf.printf "Lwt_hvsock_detach:      %.1f calls per second\n" (Run_with_detach.run ())

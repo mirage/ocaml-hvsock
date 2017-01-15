@@ -17,9 +17,18 @@
 
 open Hvsock
 
-module type MAIN = sig
-  val run_in_main: (unit -> 'a Lwt.t) -> 'a
-  (** Run the given closure in the main thread *)
+module type FN = sig
+  (** Call a blocking ('a -> 'b) function in a ('a -> 'b Lwt.t) context *)
+
+  type ('request, 'response) t
+  (** A function from 'request to 'response *)
+
+  val create: ('request -> 'response) -> ('request, 'response) t
+  val destroy: ('request, 'response) t -> unit
+
+  val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
+  (** Apply the function *)
+
 end
 
 module type HVSOCK = sig
@@ -54,28 +63,6 @@ module type HVSOCK = sig
   (** [close t] closes a socket *)
 end
 
-module Make(Time: V1_LWT.TIME)(Main: MAIN): HVSOCK
-(** Create an HVSOCK implementation given the ability to sleep and the ability
-    to run code in the main Lwt thread *)
-
-module type FN = sig
-  (** Call a blocking ('a -> 'b) function in a ('a -> 'b Lwt.t) context *)
-
-  type ('request, 'response) t
-  (** A function from 'request to 'response *)
-
-  val create: ('request -> 'response) -> ('request, 'response) t
-  val destroy: ('request, 'response) t -> unit
-
-  val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
-  (** Apply the function *)
-
-end
-
-module Run_in_thread(Main: MAIN): FN
-(** A function from 'request to 'response which is run in a single worker
-    thread, signalled via Lwt_stream *)
-
-module Run_with_detach: FN
-(** A function from 'request to 'response which is run in the main thread
-    with Lwt_preemptive.detach *)
+module Make(Time: V1_LWT.TIME)(Fn: FN): HVSOCK
+(** Create an HVSOCK implementation given the ability to run blocking
+    functions outside of Lwt. *)

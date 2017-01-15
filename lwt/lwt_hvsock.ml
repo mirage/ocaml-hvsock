@@ -28,10 +28,6 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
-module type MAIN = sig
-  val run_in_main: (unit -> 'a Lwt.t) -> 'a
-end
-
 module type HVSOCK = sig
   type t
   val create: unit -> t
@@ -63,11 +59,6 @@ type op = {
   buf: Cstruct.t;
 }
 
-type ('request, 'response) fn = {
-  request: 'request;
-  response: 'response Lwt.u;
-}
-
 module type FN = sig
   type ('request, 'response) t
 
@@ -77,54 +68,8 @@ module type FN = sig
   val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
 end
 
-module Run_with_detach = struct
-  type ('request, 'response) t = 'request -> 'response
-  let create f = f
-  let destroy _ = ()
-  let fn = Lwt_preemptive.detach
-end
 
-module Run_in_thread(Main: MAIN) = struct
-  type ('request, 'response) t = {
-    call: ('request, 'response) fn option -> unit;
-  }
-
-  let rec handle_requests blocking_op calls =
-    match Main.run_in_main (fun () ->
-      Lwt.catch
-        (fun () -> Lwt_stream.next calls >>= fun x -> Lwt.return (Some x))
-        (fun _ -> Lwt.return None)
-      ) with
-    | None -> ()
-    | Some r ->
-      let response =
-        try
-          Ok (blocking_op r.request)
-        with
-        | e -> Error e in
-      Main.run_in_main (fun () ->
-        match response with
-        | Ok x -> Lwt.wakeup_later r.response x; Lwt.return_unit
-        | Error e -> Lwt.wakeup_later_exn r.response e; Lwt.return_unit
-      );
-      handle_requests blocking_op calls
-
-  let create blocking_op =
-    let calls, call = Lwt_stream.create () in
-    let _th = Thread.create (handle_requests blocking_op) calls in
-    { call }
-
-  let fn t request =
-    let thread, response = Lwt.task () in
-    let call = { request; response } in
-    t.call (Some call);
-    thread
-
-  let destroy t = t.call None
-end
-
-module Make(Time: V1_LWT.TIME)(Main: MAIN) = struct
-module Fn = Run_in_thread(Main)
+module Make(Time: V1_LWT.TIME)(Fn: FN) = struct
 
 type t = {
   mutable fd: Unix.file_descr option;
@@ -140,21 +85,10 @@ let make fd =
 let create () = make (create ())
 
 let detach f x =
-  let stream, push = Lwt_stream.create () in
-  let return x = Main.run_in_main (fun () ->
-    push (Some x);
-    Lwt.return_unit
-  ) in
-  let _thread = Thread.create (fun () ->
-    try
-      return (`Ok (f x))
-    with e ->
-      return (`Error e)
-  ) () in
-  Lwt_stream.next stream
-  >>= function
-  | `Ok x -> Lwt.return x
-  | `Error e -> Lwt.fail e
+  let fn = Fn.create f in
+  Lwt.finalize
+    (fun () -> Fn.fn fn x)
+    (fun () -> Fn.destroy fn; Lwt.return_unit)
 
 let close t = match t with
   | { fd = None } -> Lwt.return ()
