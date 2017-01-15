@@ -25,7 +25,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 open Lwt
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+module Make(Time: Mirage_time_lwt.S)(Main: Lwt_hvsock.MAIN) = struct
 
 module Hvsock = Lwt_hvsock.Make(Time)(Main)
 
@@ -33,7 +33,12 @@ type 'a io = 'a Lwt.t
 
 type buffer = Cstruct.t
 
-type error = Unix.error
+type error = [ `Unix of Unix.error ]
+let pp_error = Bos.OS.U.pp_error
+type write_error = [ Mirage_flow.write_error | error ]
+let pp_write_error ppf = function
+|#Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
+|#error as e -> pp_error ppf e
 
 let error_message = Unix.error_message
 
@@ -59,7 +64,7 @@ let close t =
     Lwt.return ()
 
 let read flow =
-  if flow.closed then return `Eof
+  if flow.closed then return (Ok `Eof)
   else begin
     (if Cstruct.len flow.read_buffer = 0 then flow.read_buffer <- Cstruct.create flow.read_buffer_size);
     Lwt.catch
@@ -67,71 +72,67 @@ let read flow =
         Hvsock.read flow.fd flow.read_buffer
         >>= function
         | 0 ->
-          return `Eof
+          return (Ok `Eof)
         | n ->
           let result = Cstruct.sub flow.read_buffer 0 n in
           flow.read_buffer <- Cstruct.shift flow.read_buffer n;
-          return (`Ok result)
+          return (Ok (`Data result))
       ) (fun e ->
         Log.err (fun f -> f "Hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
-        return `Eof
+        return (Ok `Eof)
       )
   end
 
 let read_into flow buffer =
-  if flow.closed then return `Eof
+  if flow.closed then return (Ok `Eof)
   else
     let rec loop remaining =
       if Cstruct.len remaining = 0
-      then Lwt.return (`Ok ())
+      then Lwt.return (Ok `Done)
       else
         Hvsock.read flow.fd buffer
         >>= function
         | 0 ->
-          Lwt.return `Eof
+          Lwt.return (Ok `Eof)
         | n ->
           loop (Cstruct.shift remaining n) in
     Lwt.catch
       (fun () ->
         loop buffer
-      ) (fun e ->
-        Log.err (fun f -> f "Hvsock.read raised %s: returning `Eof" (Printexc.to_string e));
-        return `Eof
-      )
+      ) (function Unix.Unix_error (err,_,_) -> return (Error (`Unix err)))
 
 let really_write fd buf =
   let rec loop remaining =
     if Cstruct.len remaining = 0
-    then Lwt.return (`Ok ())
+    then Lwt.return (Ok ())
     else
       Hvsock.write fd remaining
       >>= function
-      | 0 -> Lwt.return (`Eof)
+      | 0 -> Lwt.return (Error `Closed)
       | n ->
         loop (Cstruct.shift remaining n) in
   Lwt.catch
     (fun () ->
       loop buf
     ) (function
-      | Unix.Unix_error(Unix.EPIPE, _, _) -> return `Eof
-      | e ->
-        Log.err (fun f -> f "Hvsock.write raised %s: returning `Eof" (Printexc.to_string e));
-        return `Eof
-    )
+      | Unix.Unix_error(Unix.EPIPE, _, _) -> Lwt.return (Error `Closed)
+      | Unix.Unix_error(err, _, _) -> Lwt.return (Error (`Unix err)))
 
 let write flow buf =
-  if flow.closed then return `Eof
+  if flow.closed then return (Error `Closed)
   else really_write flow.fd buf
 
 let writev flow bufs =
   let rec loop = function
-    | [] -> return (`Ok ())
+    | [] -> return (Ok ())
     | x :: xs ->
-      if flow.closed then return `Eof
+      if flow.closed then return (Error `Closed)
       else
         really_write flow.fd x
         >>= function
-        | `Ok () -> loop xs
-        | `Eof -> Lwt.return `Eof in
+        | Ok () -> loop xs
+        | Error `Closed  -> Lwt.return (Error `Closed)
+        | Error (`Unix e) -> Lwt.return (Error (`Unix e))
+  in
   loop bufs
 end

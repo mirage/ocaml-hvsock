@@ -20,11 +20,12 @@ remove: ["ocamlfind" "remove" "hvsock"]
 depends: [
   "base-bytes"
   "lwt" {>= "2.4.7"}
+  "bos"
   "logs"
   "fmt"
   "base-unix"
   "cmdliner"
-  "mirage-types-lwt" {>= "2.0" & <"3.0"}
+  "mirage-types-lwt" {>="3.0"}
   "mirage-flow"
   "cstruct"
   "duration"
@@ -33,4 +34,4 @@ depends: [
   "alcotest" {test & >= "0.4.0"}
 ]
 
-available: [ ocaml-version >= "4.02.3" ]
+available: [ ocaml-version >= "4.03.0" ]

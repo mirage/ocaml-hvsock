@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
- include Mirage_flow_s.SHUTDOWNABLE
+ include Mirage_flow_lwt.SHUTDOWNABLE
 
  module Hvsock: Lwt_hvsock.HVSOCK
 
- val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+ val read_into: flow -> Cstruct.t -> ([> `Done | `Eof ], [>`Unix of Unix.error]) Result.result Lwt.t
 
  val connect: Hvsock.t -> flow

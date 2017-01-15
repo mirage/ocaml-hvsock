@@ -58,7 +58,7 @@ let buffer_size = 4096
 
 module Time = struct
   type 'a io = 'a Lwt.t
-  let sleep = Lwt_unix.sleep
+  let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
 module Hv = Lwt_hvsock.Make(Time)(Lwt_preemptive)
 

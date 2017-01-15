@@ -1,4 +1,4 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name:        hvsock
 Version:     0.12.0
 Synopsis:    Hyper-V sockets
@@ -24,8 +24,8 @@ Library "hvsock_lwt"
   Findlibname:        lwt
   Findlibparent:      hvsock
   Modules:            Lwt_hvsock, Flow_lwt_hvsock, Flow_lwt_hvsock_shutdown
-  BuildDepends:       lwt, hvsock, bytes, mirage-types.lwt, cstruct,
-    mirage-flow, logs, threads, duration
+  BuildDepends:       lwt, hvsock, bytes, mirage-time-lwt, mirage-flow-lwt, cstruct,
+    mirage-flow, logs, threads, duration, bos
 
 Library "hvsock_lwt_unix"
   Pack:               false
@@ -35,8 +35,8 @@ Library "hvsock_lwt_unix"
   Findlibparent:      hvsock
   Modules:            Flow_lwt_unix_hvsock, Flow_lwt_unix_hvsock_shutdown,
     Flow_lwt_unix_main, Flow_lwt_unix_time
-  BuildDepends:       lwt, hvsock, hvsock.lwt, bytes, mirage-types.lwt, cstruct,
-    mirage-flow, logs, threads, lwt.preemptive
+  BuildDepends:       lwt, hvsock, hvsock.lwt, bytes, mirage-time-lwt, mirage-flow-lwt, cstruct,
+    mirage-flow, logs, threads, lwt.preemptive, bos
 
 Document api
   Title:              Documentation and API reference

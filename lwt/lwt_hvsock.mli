@@ -54,6 +54,6 @@ module type HVSOCK = sig
   (** [close t] closes a socket *)
 end
 
-module Make(Time: V1_LWT.TIME)(Main: MAIN): HVSOCK
+module Make(Time: Mirage_time_lwt.S)(Main: MAIN): HVSOCK
 (** Create an HVSOCK implementation given the ability to sleep and the ability
     to run code in the main Lwt thread *)
