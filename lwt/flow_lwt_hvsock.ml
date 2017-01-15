@@ -25,7 +25,7 @@ module Log = (val Logs.src_log src : Logs.LOG)
 
 open Lwt
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+module Make(Time: Mirage_time_lwt.S)(Main: Lwt_hvsock.MAIN) = struct
 
 module Hvsock = Lwt_hvsock.Make(Time)(Main)
 
@@ -33,7 +33,12 @@ type 'a io = 'a Lwt.t
 
 type buffer = Cstruct.t
 
-type error = Unix.error
+type error = [ `Unix of Unix.error ]
+let pp_error = Bos.OS.U.pp_error
+type write_error = [ Mirage_flow.write_error | error ]
+let pp_write_error ppf = function
+|#Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
+|#error as e -> pp_error ppf e
 
 let error_message = Unix.error_message
 
@@ -94,11 +99,7 @@ let read_into flow buffer =
     Lwt.catch
       (fun () ->
         loop buffer
-      ) (fun exn ->
-        let msg = Printexc.to_string exn in
-        Log.err (fun f -> f "Hvsock.read raised %s" msg);
-        return (Error (`Msg msg))
-      )
+      ) (function Unix.Unix_error (err,_,_) -> return (Error (`Unix err)))
 
 let really_write fd buf =
   let rec loop remaining =
@@ -115,11 +116,7 @@ let really_write fd buf =
       loop buf
     ) (function
       | Unix.Unix_error(Unix.EPIPE, _, _) -> Lwt.return (Error `Closed)
-      | exn ->
-        let msg = Printexc.to_string exn in
-        Log.err (fun f -> f "Hvsock.write raised %s" msg);
-        return (Error (`Msg msg))
-    )
+      | Unix.Unix_error(err, _, _) -> Lwt.return (Error (`Unix err)))
 
 let write flow buf =
   if flow.closed then return (Error `Closed)
@@ -135,7 +132,7 @@ let writev flow bufs =
         >>= function
         | Ok () -> loop xs
         | Error `Closed  -> Lwt.return (Error `Closed)
-        | Error (`Msg msg) -> Lwt.return (Error (`Msg msg))
+        | Error (`Unix e) -> Lwt.return (Error (`Unix e))
   in
   loop bufs
 end

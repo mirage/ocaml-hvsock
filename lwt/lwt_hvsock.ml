@@ -64,7 +64,7 @@ type request = {
   result: int Lwt.u;
 }
 
-module Make(Time: V1_LWT.TIME)(Main: MAIN) = struct
+module Make(Time: Mirage_time_lwt.S)(Main: MAIN) = struct
 type t = {
   mutable fd: Unix.file_descr option;
   push_read_request: request option -> unit;

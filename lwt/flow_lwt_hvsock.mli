@@ -16,12 +16,12 @@
  *
  *)
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN): sig
-  include V1_LWT.FLOW
+module Make(Time: Mirage_time_lwt.S)(Main: Lwt_hvsock.MAIN): sig
+  include Mirage_flow_lwt.S
 
   module Hvsock: Lwt_hvsock.HVSOCK
 
   val connect: Hvsock.t -> flow
 
-  val read_into: flow -> Cstruct.t -> ([> `Done | `Eof ], [> `Msg of string ]) result Lwt.t
+  val read_into: flow -> Cstruct.t -> ([> `Done | `Eof ], [> `Unix of Unix.error ]) result Lwt.t
 end

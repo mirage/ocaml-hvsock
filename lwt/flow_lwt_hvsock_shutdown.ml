@@ -53,7 +53,7 @@ end
 
 open Lwt.Infix
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN) = struct
+module Make(Time: Mirage_time_lwt.S)(Main: Lwt_hvsock.MAIN) = struct
 
 module Hvsock = Lwt_hvsock.Make(Time)(Main)
 
@@ -61,7 +61,12 @@ type 'a io = 'a Lwt.t
 
 type buffer = Cstruct.t
 
-type error = Unix.error
+type error = [ `Unix of Unix.error ]
+let pp_error = Bos.OS.U.pp_error
+type write_error = [ Mirage_flow.write_error | error ]
+let pp_write_error ppf = function
+|#Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
+|#error as e -> pp_error ppf e
 
 let error_message = Unix.error_message
 
@@ -196,8 +201,8 @@ let close flow =
               let rec wait_for_close () =
                 really_read flow.fd header
                 >>= function
-                | Error (`Msg m) ->
-                   Log.err (fun f -> f "Read error %s" m);
+                | Error (`Unix m) ->
+                   Log.err (fun f -> f "Read error %s" (Unix.error_message m));
                    Lwt.return_unit
                 | Ok `Eof -> Lwt.return_unit
                 | Ok `Done ->
@@ -217,8 +222,8 @@ let close flow =
                     >>= function
                     | Ok `Eof -> Lwt.return_unit
                     | Ok `Done -> wait_for_close ()
-                    | Error (`Msg m) -> 
-                      Log.err (fun f -> f "Read error %s" m);
+                    | Error (`Unix m) -> 
+                      Log.err (fun f -> f "Read error %s" (Unix.error_message m));
                       Lwt.return_unit
               in
               wait_for_close ()
@@ -258,8 +263,8 @@ let read_next_chunk flow =
     let rec loop () =
       really_read flow.fd flow.read_header_buffer
       >>= function
-      | Error (`Msg m) ->
-         Log.err (fun f -> f "read_next_chunk error: %s" m);
+      | Error (`Unix m) ->
+         Log.err (fun f -> f "read_next_chunk error: %s" (Unix.error_message m));
          Lwt.return (Ok `Eof)
       | Ok `Eof -> Lwt.return (Ok `Eof)
       | Ok `Done ->
@@ -284,8 +289,8 @@ let read_next_chunk flow =
           >>= function
           | Ok `Eof -> Lwt.return (Ok `Eof)
           | Ok `Done -> Lwt.return (Ok (`Data payload)) 
-          | Error (`Msg m) ->
-             Log.err (fun f -> f "read_next_chunk error, turning into eof: %s" m);
+          | Error (`Unix m) ->
+             Log.err (fun f -> f "read_next_chunk error, turning into eof: %s" (Unix.error_message m));
              Lwt.return (Ok `Eof)
     in
     loop ()
@@ -311,8 +316,8 @@ let rec read_into flow buf =
         (fun () ->
           read_next_chunk flow
           >>= function
-          | Error (`Msg m) ->
-             Log.err (fun f -> f "read_into error, turning into eof: %s" m);
+          | Error (`Unix m) ->
+             Log.err (fun f -> f "read_into error, turning into eof: %s" (Unix.error_message m));
              Lwt.return (Ok `Eof)
           | Ok `Eof -> Lwt.return (Ok `Eof)
           | Ok (`Data payload) ->
@@ -323,8 +328,8 @@ let rec read_into flow buf =
         ) >>= function
         | Ok `Eof -> Lwt.return (Ok `Eof)
         | Ok (`Data buf) -> read_into flow buf
-        | Error (`Msg m) ->
-            Log.err (fun f -> f "read_into error, turning into eof: %s" m);
+        | Error (`Unix m) ->
+            Log.err (fun f -> f "read_into error, turning into eof: %s" (Unix.error_message m));
             Lwt.return (Ok `Eof)
     end else begin
       let to_consume = min (Cstruct.len buf) (Cstruct.len flow.leftover) in
