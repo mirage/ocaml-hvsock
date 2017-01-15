@@ -75,3 +75,7 @@ end
 module Run_in_thread(Main: MAIN): FN
 (** A function from 'request to 'response which is run in a single worker
     thread, signalled via Lwt_stream *)
+
+module Run_with_detach: FN
+(** A function from 'request to 'response which is run in the main thread
+    with Lwt_preemptive.detach *)

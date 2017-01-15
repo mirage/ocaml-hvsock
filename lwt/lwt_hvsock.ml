@@ -77,6 +77,13 @@ module type FN = sig
   val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
 end
 
+module Run_with_detach = struct
+  type ('request, 'response) t = 'request -> 'response
+  let create f = f
+  let destroy _ = ()
+  let fn = Lwt_preemptive.detach
+end
+
 module Run_in_thread(Main: MAIN) = struct
   type ('request, 'response) t = {
     call: ('request, 'response) fn option -> unit;
