@@ -332,7 +332,7 @@ stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
 
   if (ret == SOCKET_ERROR) {
     win32_maperr(err);
-    uerror("read", Nothing);
+    uerror("write", Nothing);
   }
   CAMLreturn(Val_int(ret));
 }
