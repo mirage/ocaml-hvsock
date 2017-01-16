@@ -32,6 +32,28 @@ let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruc
 external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
 let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 
+module Histogram = struct
+  type t = (int, int) Hashtbl.t
+  (** A table of <bucket> to <count> *)
+
+  let create () = Hashtbl.create 7
+
+  let add t size =
+    let existing =
+      if Hashtbl.mem t size
+      then Hashtbl.find t size
+      else 0 in
+    Hashtbl.replace t size (existing + 1)
+
+  let dump t =
+    Printf.printf "length %d\n" (Hashtbl.length t);
+    Hashtbl.iter
+      (fun size n ->
+        Printf.printf "%d %d\n" size n
+      ) t;
+    Printf.printf "%!"
+end
+
 module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN) = struct
 
 module Blocking_hvsock = Hvsock
@@ -54,6 +76,7 @@ type flow = {
   read_buffers_m: Mutex.t;
   read_buffers_c: Condition.t;
   mutable read_error: bool;
+  read_histogram: Histogram.t;
   mutable write_buffers: Cstruct.t list;
   mutable write_buffers_len: int;
   write_buffers_m: Mutex.t;
@@ -61,6 +84,7 @@ type flow = {
   write_buffers_max: int;
   write_max: int;
   mutable write_flushed: bool;
+  write_histogram: Histogram.t;
   mutable closed: bool;
   mutable write_error: bool;
 }
@@ -72,6 +96,7 @@ let connect fd =
   let read_buffers_len = 0 in
   let read_buffers_m = Mutex.create () in
   let read_buffers_c = Condition.create () in
+  let read_histogram = Histogram.create () in
   let read_error = false in
   let write_buffers = [] in
   let write_buffers_len = 0 in
@@ -80,13 +105,14 @@ let connect fd =
   let write_buffers_max = 65536 in
   let write_max = 8192 in
   let write_flushed = false in
+  let write_histogram = Histogram.create () in
   let closed = false in
   let write_error = false in
 
   let t = { fd; read_buffers_max; read_max; read_buffers; read_buffers_len;
     read_buffers_m; read_buffers_c; read_error; write_buffers; write_buffers_len;
     write_buffers_m; write_buffers_c; closed; write_buffers_max; write_max; write_flushed;
-    write_error } in
+    write_error; read_histogram; write_histogram } in
 
   let write_thread () =
     let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
@@ -107,6 +133,7 @@ let connect fd =
         let rec loop remaining =
           if Cstruct.len remaining = 0 then () else begin
             let to_write = min t.write_max (Cstruct.len remaining) in
+            Histogram.add t.write_histogram to_write;
             let buf = Cstruct.sub remaining 0 to_write in
             let n = cstruct_write fd buf in
             loop @@ Cstruct.shift remaining n
@@ -140,6 +167,7 @@ let connect fd =
           if Cstruct.len remaining = 0 then () else begin
             let to_read = min t.read_max (Cstruct.len remaining) in
             let buf = Cstruct.sub remaining 0 to_read in
+            Histogram.add t.read_histogram to_read;
             let n = cstruct_read fd buf in
             let data = Cstruct.sub remaining 0 n in
             Mutex.lock t.read_buffers_m;
