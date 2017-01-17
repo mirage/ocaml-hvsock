@@ -29,8 +29,53 @@ type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Arr
 external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_send"
 let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 
+external stub_ba_sendv: Unix.file_descr -> (buffer * int * int) list -> int = "stub_hvsock_ba_sendv"
+let cstruct_writev fd bs =
+  let bs' = List.map (fun b -> b.Cstruct.buffer, b.Cstruct.off, b.Cstruct.len) bs in
+  stub_ba_sendv fd bs'
+
 external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
 let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
+
+module Cstructs = struct
+
+type t = Cstruct.t list
+
+let pp_t ppf t =
+  List.iter (fun t ->
+    Format.fprintf ppf "[%d,%d](%d)" t.Cstruct.off t.Cstruct.len (Bigarray.Array1.dim t.Cstruct.buffer)
+  ) t
+
+let len = List.fold_left (fun acc c -> Cstruct.len c + acc) 0
+
+let err fmt =
+  let b = Buffer.create 20 in                         (* for thread safety. *)
+  let ppf = Format.formatter_of_buffer b in
+  let k ppf = Format.pp_print_flush ppf (); invalid_arg (Buffer.contents b) in
+  Format.kfprintf k ppf fmt
+
+let rec shift t x =
+  if x = 0 then t else match t with
+  | [] -> err "Cstructs.shift %a %d" pp_t t x
+  | y :: ys ->
+    let y' = Cstruct.len y in
+    if y' > x
+    then Cstruct.shift y x :: ys
+    else shift ys (x - y')
+
+    let sub t off len =
+      let t' = shift t off in
+      (* trim the length *)
+      let rec trim acc ts remaining = match remaining, ts with
+        | 0, _ -> List.rev acc
+        | n, [] -> err "invalid bounds in Cstructs.sub %a off=%d len=%d" pp_t t off len
+        | n, t :: ts ->
+          let to_take = min (Cstruct.len t) n in
+          (* either t is consumed and we only need ts, or t has data remaining in which
+             case we're finished *)
+          trim (Cstruct.sub t 0 to_take :: acc) ts (remaining - to_take) in
+      trim [] t' len
+end
 
 module Histogram = struct
   type t = (int, int) Hashtbl.t
@@ -129,16 +174,16 @@ let connect fd =
       List.rev result  in
     try
       while not t.closed do
-        let buffer = get_buffers () |> Cstruct.concat in
+        let buffers = get_buffers () in
         let rec loop remaining =
-          if Cstruct.len remaining = 0 then () else begin
-            let to_write = min t.write_max (Cstruct.len remaining) in
+          if Cstructs.len remaining = 0 then () else begin
+            let to_write = min t.write_max (Cstructs.len remaining) in
             Histogram.add t.write_histogram to_write;
-            let buf = Cstruct.sub remaining 0 to_write in
-            let n = cstruct_write fd buf in
-            loop @@ Cstruct.shift remaining n
+            let buf = Cstructs.sub remaining 0 to_write in
+            let n = cstruct_writev fd buf in
+            loop @@ Cstructs.shift remaining n
           end in
-        loop buffer
+        loop buffers
       done;
       t.write_flushed <- true;
       Condition.broadcast write_buffers_c
