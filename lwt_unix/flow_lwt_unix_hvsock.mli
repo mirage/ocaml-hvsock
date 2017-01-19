@@ -14,10 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
- include V1_LWT.FLOW
+ include Mirage_flow_lwt.S
 
  module Hvsock: Lwt_hvsock.HVSOCK
 
  val connect: Hvsock.t -> flow
 
- val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+ val read_into: flow -> Cstruct.t -> ([> `Done | `Eof ], [>`Unix of Unix.error]) Result.result Lwt.t
