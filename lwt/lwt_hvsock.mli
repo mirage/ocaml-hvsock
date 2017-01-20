@@ -17,9 +17,18 @@
 
 open Hvsock
 
-module type MAIN = sig
-  val run_in_main: (unit -> 'a Lwt.t) -> 'a
-  (** Run the given closure in the main thread *)
+module type FN = sig
+  (** Call a blocking ('a -> 'b) function in a ('a -> 'b Lwt.t) context *)
+
+  type ('request, 'response) t
+  (** A function from 'request to 'response *)
+
+  val create: ('request -> 'response) -> ('request, 'response) t
+  val destroy: ('request, 'response) t -> unit
+
+  val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
+  (** Apply the function *)
+
 end
 
 module type HVSOCK = sig
@@ -28,6 +37,10 @@ module type HVSOCK = sig
 
   val create: unit -> t
   (** [create ()] creates an unbound AF_HVSOCK socket *)
+
+  val to_fd: t -> Unix.file_descr option
+  (** [to_fd t] returns the wrapped file descriptor. Note this only supports
+      blocking I/O *)
 
   val bind: t -> sockaddr -> unit
   (** [bind t sockaddr] binds [socket] to [sockaddr] *)
@@ -54,6 +67,6 @@ module type HVSOCK = sig
   (** [close t] closes a socket *)
 end
 
-module Make(Time: V1_LWT.TIME)(Main: MAIN): HVSOCK
-(** Create an HVSOCK implementation given the ability to sleep and the ability
-    to run code in the main Lwt thread *)
+module Make(Time: V1_LWT.TIME)(Fn: FN): HVSOCK
+(** Create an HVSOCK implementation given the ability to run blocking
+    functions outside of Lwt. *)

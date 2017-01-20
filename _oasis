@@ -34,7 +34,7 @@ Library "hvsock_lwt_unix"
   Findlibname:        lwt-unix
   Findlibparent:      hvsock
   Modules:            Flow_lwt_unix_hvsock, Flow_lwt_unix_hvsock_shutdown,
-    Flow_lwt_unix_main, Flow_lwt_unix_time
+    Flow_lwt_unix_time, Lwt_hvsock_detach, Lwt_hvsock_main_thread
   BuildDepends:       lwt, hvsock, hvsock.lwt, bytes, mirage-types.lwt, cstruct,
     mirage-flow, logs, threads, lwt.preemptive
 
@@ -59,9 +59,23 @@ Executable test
   CompiledObject:     best
   Path:               lib_test
   MainIs:             test.ml
-  BuildDepends:       hvsock, alcotest, logs.fmt
+  BuildDepends:       hvsock, hvsock.lwt-unix, alcotest, logs.fmt
 
 Test test
   Run$:               flag(tests)
   Command:            $test
   WorkingDirectory:   lib_test
+
+# Executable thread_benchmark
+#  Build$:             flag(tests)
+#  Install:            false
+#  CompiledObject:     best
+#  Path:               lib_test
+#  MainIs:             thread_benchmark.ml
+#  BuildDepends:       hvsock.lwt, alcotest, logs.fmt, lwt.preemptive,
+#    uwt, uwt.preemptive
+#
+#Test thread_benchmark
+#  Run$:               flag(tests)
+#  Command:            $thread_benchmark
+#  WorkingDirectory:   lib_test

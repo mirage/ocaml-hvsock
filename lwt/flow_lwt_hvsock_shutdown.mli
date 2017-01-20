@@ -21,7 +21,7 @@
     https://github.com/rneugeba/virtsock/tree/master/go/hvsock
 *)
 
-module Make(Time: V1_LWT.TIME)(Main: Lwt_hvsock.MAIN): sig
+module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN): sig
 
   include Mirage_flow_s.SHUTDOWNABLE
 

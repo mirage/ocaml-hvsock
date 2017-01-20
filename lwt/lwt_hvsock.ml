@@ -20,7 +20,7 @@ open Lwt.Infix
 
 (* Workarounds:
    1. select() is not implemented so we can't use regular non-blocking I/O
-      i.e. we must use first class threads. Note that Lwt_preemptive calls
+      i.e. we must use first class threads. Note that Lwt_Fn calls
       can block if the thread pool fills up. We create our own threads per
       connection to avoid this.
    2. connect() blocks forever instead of failing with ECONNREFUSED if the
@@ -28,13 +28,10 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
-module type MAIN = sig
-  val run_in_main: (unit -> 'a Lwt.t) -> 'a
-end
-
 module type HVSOCK = sig
   type t
   val create: unit -> t
+  val to_fd: t -> Unix.file_descr option
   val bind: t -> sockaddr -> unit
   val listen: t -> int -> unit
   val accept: t -> (t * sockaddr) Lwt.t
@@ -58,71 +55,50 @@ type ('a, 'b) r =
 
 type result = (int, exn) r
 
-type request = {
+type op = {
   file_descr: Unix.file_descr;
   buf: Cstruct.t;
-  result: int Lwt.u;
 }
 
-module Make(Time: V1_LWT.TIME)(Main: MAIN) = struct
+module type FN = sig
+  type ('request, 'response) t
+
+  val create: ('request -> 'response) -> ('request, 'response) t
+  val destroy: ('request, 'response) t -> unit
+
+  val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
+end
+
+
+module Make(Time: V1_LWT.TIME)(Fn: FN) = struct
+
 type t = {
   mutable fd: Unix.file_descr option;
-  push_read_request: request option -> unit;
-  push_write_request: request option -> unit;
+  read: (op, int) Fn.t;
+  write: (op, int) Fn.t;
 }
 
-let rec handle_requests blocking_op requests =
-  match Main.run_in_main (fun () ->
-    Lwt.catch
-      (fun () -> Lwt_stream.next requests >>= fun x -> Lwt.return (Some x))
-      (fun _ -> Lwt.return None)
-    ) with
-  | None -> ()
-  | Some r ->
-    let result =
-      try
-        Ok (blocking_op r.file_descr r.buf)
-      with
-      | e -> Error e in
-    Main.run_in_main (fun () ->
-      match result with
-      | Ok x -> Lwt.wakeup_later r.result x; Lwt.return_unit
-      | Error e -> Lwt.wakeup_later_exn r.result e; Lwt.return_unit
-    );
-    handle_requests blocking_op requests
-
 let make fd =
-  let read_requests, push_read_request = Lwt_stream.create () in
-  let write_requests, push_write_request = Lwt_stream.create () in
-  let _reader = Thread.create (handle_requests cstruct_read) read_requests in
-  let _writer = Thread.create (handle_requests cstruct_write) write_requests in
-  { fd = Some fd; push_read_request; push_write_request; }
+  let read = Fn.create (fun op -> cstruct_read op.file_descr op.buf) in
+  let write = Fn.create (fun op -> cstruct_write op.file_descr op.buf) in
+  { fd = Some fd; read; write; }
 
 let create () = make (create ())
 
+let to_fd t = t.fd
+
 let detach f x =
-  let stream, push = Lwt_stream.create () in
-  let return x = Main.run_in_main (fun () ->
-    push (Some x);
-    Lwt.return_unit
-  ) in
-  let _thread = Thread.create (fun () ->
-    try
-      return (`Ok (f x))
-    with e ->
-      return (`Error e)
-  ) () in
-  Lwt_stream.next stream
-  >>= function
-  | `Ok x -> Lwt.return x
-  | `Error e -> Lwt.fail e
+  let fn = Fn.create f in
+  Lwt.finalize
+    (fun () -> Fn.fn fn x)
+    (fun () -> Fn.destroy fn; Lwt.return_unit)
 
 let close t = match t with
   | { fd = None } -> Lwt.return ()
   | { fd = Some x } ->
     t.fd <- None;
-    t.push_read_request None;
-    t.push_write_request None;
+    Fn.destroy t.read;
+    Fn.destroy t.write;
     detach Unix.close x
 
 let bind t addr = match t with
@@ -147,17 +123,11 @@ let connect ?timeout_ms t addr = match t with
 
 let read t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
-  | { fd = Some file_descr; push_read_request } ->
-    let t, result = Lwt.task () in
-    let request = { file_descr; buf; result } in
-    push_read_request (Some request);
-    t
+  | { fd = Some file_descr; read } ->
+    Fn.fn read { file_descr; buf }
 
 let write t buf = match t with
   | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
-  | { fd = Some file_descr; push_write_request } ->
-    let t, result = Lwt.task () in
-    let request = { file_descr; buf; result } in
-    push_write_request (Some request);
-    t
+  | { fd = Some file_descr; write } ->
+    Fn.fn write { file_descr; buf }
 end

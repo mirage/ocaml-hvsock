@@ -33,6 +33,8 @@
 #ifndef WIN32
 #include <fcntl.h>
 #include <poll.h>
+#include <unistd.h>
+#include <sys/uio.h>
 #else
 #define ETIMEDOUT -WSAETIMEDOUT
 #endif
@@ -332,7 +334,59 @@ stub_hvsock_ba_send(value fd, value val_buf, value val_ofs, value val_len)
 
   if (ret == SOCKET_ERROR) {
     win32_maperr(err);
-    uerror("read", Nothing);
+    uerror("write", Nothing);
   }
   CAMLreturn(Val_int(ret));
+}
+
+CAMLprim value
+stub_hvsock_ba_sendv(value fd, value val_list)
+{
+  CAMLparam2(fd, val_list);
+  CAMLlocal5(next, head, val_buf, val_ofs, val_len);
+  SOCKET s = Socket_val(fd);
+  DWORD err = 0;
+  DWORD sent = 0;
+  int ret = 0;
+  int length = 0;
+  int i;
+  next = val_list;
+  for (next = val_list; next != Val_emptylist; next = Field(next, 1))
+    length++;
+#ifdef WIN32
+  LPWSABUF iovec = (WSABUF*)malloc(sizeof(WSABUF) * length);
+#else
+  struct iovec *iovec = (struct iovec*)malloc(sizeof(struct iovec) * length);
+#endif
+  next = val_list;
+  for (i = 0; i < length; i ++) {
+    head = Field(next, 0);
+    val_buf = Field(head, 0);
+    val_ofs = Field(head, 1);
+    val_len = Field(head, 2);
+#ifdef WIN32
+    iovec[i].buf = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
+    iovec[i].len = Long_val(val_len);
+#else
+    iovec[i].iov_base = (char*)Caml_ba_data_val(val_buf) + Long_val(val_ofs);
+    iovec[i].iov_len = Long_val(val_len);
+#endif
+    next = Field(next, 1);
+  }
+  caml_release_runtime_system();
+#ifdef WIN32
+  ret = WSASend(s, iovec, length, &sent, 0, NULL, NULL);
+#else
+  ret = writev(s, iovec, length);
+  if (ret != SOCKET_ERROR) sent = ret;
+#endif
+  if (ret == SOCKET_ERROR) err = WSAGetLastError();
+  free(iovec);
+  caml_acquire_runtime_system();
+
+  if (ret == SOCKET_ERROR) {
+    win32_maperr(err);
+    uerror("write", Nothing);
+  }
+  CAMLreturn(Val_int(sent));
 }

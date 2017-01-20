@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2016 Docker Inc
+ * Copyright (C) 2017 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,4 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
-let run_in_main = Lwt_preemptive.run_in_main
+
+include Lwt_hvsock.FN
