@@ -18,6 +18,6 @@
 
  module Hvsock: Lwt_hvsock.HVSOCK
 
- val connect: Hvsock.t -> flow
+ val connect: ?message_size:int -> ?buffer_size:int -> Hvsock.t -> flow
 
  val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t

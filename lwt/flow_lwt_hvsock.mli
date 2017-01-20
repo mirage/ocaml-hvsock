@@ -21,7 +21,14 @@ module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN): sig
 
   module Hvsock: Lwt_hvsock.HVSOCK
 
-  val connect: Hvsock.t -> flow
+  val connect: ?message_size:int -> ?buffer_size: int -> Hvsock.t -> flow
+  (** Construct a flow given a Hyper-V socket connection.
+      ?message_size allows the maximum send/recv size to be limited.
+      ?buffer_size controls how much buffering is placed over the socket.
+
+      Note the buffer handling of this flow is different to normal: `read` and
+      `readv` will retain references to the passed buffers. They must not be
+      used again by the calling application. *)
 
   val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
 end

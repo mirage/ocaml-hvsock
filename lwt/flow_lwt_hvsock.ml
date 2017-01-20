@@ -134,9 +134,9 @@ type flow = {
   mutable write_error: bool;
 }
 
-let connect fd =
-  let read_buffers_max = 65536 in
-  let read_max = 8192 in
+let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
+  let read_buffers_max = buffer_size in
+  let read_max = message_size in
   let read_buffers = [] in
   let read_buffers_len = 0 in
   let read_buffers_m = Mutex.create () in
@@ -147,8 +147,8 @@ let connect fd =
   let write_buffers_len = 0 in
   let write_buffers_m = Mutex.create () in
   let write_buffers_c = Condition.create () in
-  let write_buffers_max = 65536 in
-  let write_max = 8192 in
+  let write_buffers_max = buffer_size in
+  let write_max = message_size in
   let write_flushed = false in
   let write_histogram = Histogram.create () in
   let closed = false in
