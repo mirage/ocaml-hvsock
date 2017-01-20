@@ -66,16 +66,16 @@ Test test
   Command:            $test
   WorkingDirectory:   lib_test
 
-Executable thread_benchmark
-  Build$:             flag(tests)
-  Install:            false
-  CompiledObject:     best
-  Path:               lib_test
-  MainIs:             thread_benchmark.ml
-  BuildDepends:       hvsock.lwt, alcotest, logs.fmt, lwt.preemptive,
-    uwt, uwt.preemptive
-
-Test thread_benchmark
-  Run$:               flag(tests)
-  Command:            $thread_benchmark
-  WorkingDirectory:   lib_test
+# Executable thread_benchmark
+#  Build$:             flag(tests)
+#  Install:            false
+#  CompiledObject:     best
+#  Path:               lib_test
+#  MainIs:             thread_benchmark.ml
+#  BuildDepends:       hvsock.lwt, alcotest, logs.fmt, lwt.preemptive,
+#    uwt, uwt.preemptive
+#
+#Test thread_benchmark
+#  Run$:               flag(tests)
+#  Command:            $thread_benchmark
+#  WorkingDirectory:   lib_test
