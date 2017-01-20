@@ -1,4 +1,11 @@
-0.12.0 (2016-01-11):
+0.13.0 (2017-01-20):
+- use scatter-gather I/O to minimise system calls
+- spawn a pair of blocking read/write threads, using a fixed amount
+  of buffer
+- switch to Lwt_preemptive.detach: 2x faster than Lwt_stream + run_in_main
+- attempt to minimise the number of calls of Lwt_preemptive.detach
+
+0.12.0 (2017-01-11):
 - use a blocking connect by default, rather than a 300ms delay
 - drop the OCaml heap lock in the non-blocking connect
 - run the connect function in a background thread
