@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 35d789b68413d5cf2bfe5a9b602e2bbd)
+# DO NOT EDIT (digest: 2e439513ca5b6e49b029f2a1191974e3)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -21,18 +21,21 @@ true: annot, bin_annot
 "lib/hvsock_stubs.c": package(unix)
 # Library hvsock_lwt
 "lwt/hvsock_lwt.cmxs": use_hvsock_lwt
+<lwt/*.ml{,i,y}>: package(bos)
 <lwt/*.ml{,i,y}>: package(bytes)
 <lwt/*.ml{,i,y}>: package(cstruct)
 <lwt/*.ml{,i,y}>: package(duration)
 <lwt/*.ml{,i,y}>: package(logs)
 <lwt/*.ml{,i,y}>: package(lwt)
 <lwt/*.ml{,i,y}>: package(mirage-flow)
-<lwt/*.ml{,i,y}>: package(mirage-types.lwt)
+<lwt/*.ml{,i,y}>: package(mirage-flow-lwt)
+<lwt/*.ml{,i,y}>: package(mirage-time-lwt)
 <lwt/*.ml{,i,y}>: package(threads)
 <lwt/*.ml{,i,y}>: package(unix)
 <lwt/*.ml{,i,y}>: use_hvsock
 # Library hvsock_lwt_unix
 "lwt_unix/hvsock_lwt_unix.cmxs": use_hvsock_lwt_unix
+<lwt_unix/*.ml{,i,y}>: package(bos)
 <lwt_unix/*.ml{,i,y}>: package(bytes)
 <lwt_unix/*.ml{,i,y}>: package(cstruct)
 <lwt_unix/*.ml{,i,y}>: package(duration)
@@ -40,12 +43,14 @@ true: annot, bin_annot
 <lwt_unix/*.ml{,i,y}>: package(lwt)
 <lwt_unix/*.ml{,i,y}>: package(lwt.preemptive)
 <lwt_unix/*.ml{,i,y}>: package(mirage-flow)
-<lwt_unix/*.ml{,i,y}>: package(mirage-types.lwt)
+<lwt_unix/*.ml{,i,y}>: package(mirage-flow-lwt)
+<lwt_unix/*.ml{,i,y}>: package(mirage-time-lwt)
 <lwt_unix/*.ml{,i,y}>: package(threads)
 <lwt_unix/*.ml{,i,y}>: package(unix)
 <lwt_unix/*.ml{,i,y}>: use_hvsock
 <lwt_unix/*.ml{,i,y}>: use_hvsock_lwt
 # Executable hvcat
+<src/hvcat.{native,byte}>: package(bos)
 <src/hvcat.{native,byte}>: package(bytes)
 <src/hvcat.{native,byte}>: package(cmdliner)
 <src/hvcat.{native,byte}>: package(cstruct)
@@ -55,12 +60,14 @@ true: annot, bin_annot
 <src/hvcat.{native,byte}>: package(lwt.preemptive)
 <src/hvcat.{native,byte}>: package(lwt.unix)
 <src/hvcat.{native,byte}>: package(mirage-flow)
-<src/hvcat.{native,byte}>: package(mirage-types.lwt)
+<src/hvcat.{native,byte}>: package(mirage-flow-lwt)
+<src/hvcat.{native,byte}>: package(mirage-time-lwt)
 <src/hvcat.{native,byte}>: package(threads)
 <src/hvcat.{native,byte}>: package(unix)
 <src/hvcat.{native,byte}>: use_hvsock
 <src/hvcat.{native,byte}>: use_hvsock_lwt
 <src/hvcat.{native,byte}>: use_hvsock_lwt_unix
+<src/*.ml{,i,y}>: package(bos)
 <src/*.ml{,i,y}>: package(bytes)
 <src/*.ml{,i,y}>: package(cmdliner)
 <src/*.ml{,i,y}>: package(cstruct)
@@ -70,7 +77,8 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: package(lwt.preemptive)
 <src/*.ml{,i,y}>: package(lwt.unix)
 <src/*.ml{,i,y}>: package(mirage-flow)
-<src/*.ml{,i,y}>: package(mirage-types.lwt)
+<src/*.ml{,i,y}>: package(mirage-flow-lwt)
+<src/*.ml{,i,y}>: package(mirage-time-lwt)
 <src/*.ml{,i,y}>: package(threads)
 <src/*.ml{,i,y}>: package(unix)
 <src/*.ml{,i,y}>: use_hvsock
@@ -78,6 +86,7 @@ true: annot, bin_annot
 <src/*.ml{,i,y}>: use_hvsock_lwt_unix
 # Executable test
 <lib_test/test.{native,byte}>: package(alcotest)
+<lib_test/test.{native,byte}>: package(bos)
 <lib_test/test.{native,byte}>: package(bytes)
 <lib_test/test.{native,byte}>: package(cstruct)
 <lib_test/test.{native,byte}>: package(duration)
@@ -86,13 +95,15 @@ true: annot, bin_annot
 <lib_test/test.{native,byte}>: package(lwt)
 <lib_test/test.{native,byte}>: package(lwt.preemptive)
 <lib_test/test.{native,byte}>: package(mirage-flow)
-<lib_test/test.{native,byte}>: package(mirage-types.lwt)
+<lib_test/test.{native,byte}>: package(mirage-flow-lwt)
+<lib_test/test.{native,byte}>: package(mirage-time-lwt)
 <lib_test/test.{native,byte}>: package(threads)
 <lib_test/test.{native,byte}>: package(unix)
 <lib_test/test.{native,byte}>: use_hvsock
 <lib_test/test.{native,byte}>: use_hvsock_lwt
 <lib_test/test.{native,byte}>: use_hvsock_lwt_unix
 <lib_test/*.ml{,i,y}>: package(alcotest)
+<lib_test/*.ml{,i,y}>: package(bos)
 <lib_test/*.ml{,i,y}>: package(bytes)
 <lib_test/*.ml{,i,y}>: package(cstruct)
 <lib_test/*.ml{,i,y}>: package(duration)
@@ -101,7 +112,8 @@ true: annot, bin_annot
 <lib_test/*.ml{,i,y}>: package(lwt)
 <lib_test/*.ml{,i,y}>: package(lwt.preemptive)
 <lib_test/*.ml{,i,y}>: package(mirage-flow)
-<lib_test/*.ml{,i,y}>: package(mirage-types.lwt)
+<lib_test/*.ml{,i,y}>: package(mirage-flow-lwt)
+<lib_test/*.ml{,i,y}>: package(mirage-time-lwt)
 <lib_test/*.ml{,i,y}>: package(threads)
 <lib_test/*.ml{,i,y}>: package(unix)
 <lib_test/*.ml{,i,y}>: use_hvsock
