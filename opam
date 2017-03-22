@@ -25,8 +25,8 @@ depends: [
   "fmt"
   "base-unix"
   "cmdliner"
-  "mirage-types-lwt" {>= "2.0" & <"3.0"}
-  "mirage-flow"
+  "mirage-flow-lwt" {>= "1.2.0"}
+  "mirage-time-lwt" {>= "1.0.0"}
   "cstruct"
   "duration"
   "ocamlfind" {build}
