@@ -70,7 +70,7 @@ module type FN = sig
 end
 
 
-module Make(Time: V1_LWT.TIME)(Fn: FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: FN) = struct
 
 type t = {
   mutable fd: Unix.file_descr option;

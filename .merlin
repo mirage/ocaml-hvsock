@@ -1,0 +1,4 @@
+PKG mirage-time-lwt mirage-flow-lwt bos logs duration cmdliner
+S lwt
+B +threads
+B _build/**

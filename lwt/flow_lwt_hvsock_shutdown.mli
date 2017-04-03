@@ -21,13 +21,15 @@
     https://github.com/rneugeba/virtsock/tree/master/go/hvsock
 *)
 
-module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN): sig
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN): sig
 
-  include Mirage_flow_s.SHUTDOWNABLE
+  type error = [ `Unix of Unix.error ]
+
+  include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
 
   module Hvsock: Lwt_hvsock.HVSOCK
 
-  val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+  val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
 
   val connect: Hvsock.t -> flow
 end

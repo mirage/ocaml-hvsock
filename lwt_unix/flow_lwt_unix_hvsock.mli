@@ -14,10 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
- include V1_LWT.FLOW
+
+type error = [`Unix of Unix.error]
+
+include Mirage_flow_lwt.S with type error := error
 
  module Hvsock: Lwt_hvsock.HVSOCK
 
  val connect: ?message_size:int -> ?buffer_size:int -> Hvsock.t -> flow
 
- val read_into: flow -> Cstruct.t -> [ `Eof | `Error of error | `Ok of unit ] Lwt.t
+ val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t

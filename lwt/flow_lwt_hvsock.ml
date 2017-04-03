@@ -16,14 +16,14 @@
  *
  *)
 
+open Lwt.Infix
+
 let src =
   let src = Logs.Src.create "flow_lwt_hvsock" ~doc:"AF_HYPERV flow" in
   Logs.Src.set_level src (Some Logs.Debug);
   src
 
 module Log = (val Logs.src_log src : Logs.LOG)
-
-open Lwt
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_send"
@@ -99,7 +99,7 @@ module Histogram = struct
     Printf.printf "%!"
 end
 
-module Make(Time: V1_LWT.TIME)(Fn: Lwt_hvsock.FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN) = struct
 
 module Blocking_hvsock = Hvsock
 module Hvsock = Lwt_hvsock.Make(Time)(Fn)
@@ -108,7 +108,12 @@ type 'a io = 'a Lwt.t
 
 type buffer = Cstruct.t
 
-type error = Unix.error
+type error = [ `Unix of Unix.error ]
+let pp_error = Bos.OS.U.pp_error
+type write_error = [ Mirage_flow.write_error | error ]
+let pp_write_error ppf = function
+  |#Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
+  |#error as e -> pp_error ppf e
 
 let error_message = Unix.error_message
 
@@ -266,7 +271,7 @@ let wait_for_data flow n =
   Mutex.unlock flow.read_buffers_m
 
 let read flow =
-  if flow.closed || flow.read_error then return `Eof
+  if flow.closed || flow.read_error then Lwt.return (Ok `Eof)
   else begin
     Mutex.lock flow.read_buffers_m;
     let take () =
@@ -277,17 +282,16 @@ let read flow =
       result in
     if flow.read_buffers = [] then begin
       Mutex.unlock flow.read_buffers_m;
-      detach (wait_for_data flow) 1
-      >>= fun () ->
+      detach (wait_for_data flow) 1 >|= fun () ->
       (* Assume for now there's only one reader so no-one will steal the data *)
       Mutex.lock flow.read_buffers_m;
       let result = take () in
       Mutex.unlock flow.read_buffers_m;
-      return (`Ok result)
+      Ok (`Data result)
     end else begin
       let result = take () in
       Mutex.unlock flow.read_buffers_m;
-      return (`Ok result)
+      Lwt.return (Ok (`Data result))
     end
   end
 
@@ -304,7 +308,7 @@ let wait_for_space flow n =
   Mutex.unlock flow.write_buffers_m
 
 let writev flow bufs =
-  if flow.closed || flow.write_error then return `Eof else begin
+  if flow.closed || flow.write_error then Lwt.return (Error `Closed) else begin
     let len = List.fold_left (+) 0 (List.map Cstruct.len bufs) in
     Mutex.lock flow.write_buffers_m;
     let put () =
@@ -313,17 +317,16 @@ let writev flow bufs =
       Condition.broadcast flow.write_buffers_c in
     if flow.write_buffers_len + len > flow.write_buffers_max then begin
       Mutex.unlock flow.write_buffers_m;
-      detach (wait_for_space flow) len
-      >>= fun () ->
+      detach (wait_for_space flow) len >|= fun () ->
       (* Assume for now there's only one writer so no-one will steal the space *)
       Mutex.lock flow.write_buffers_m;
       put ();
       Mutex.unlock flow.write_buffers_m;
-      Lwt.return (`Ok ())
+      Ok ()
     end else begin
       put ();
       Mutex.unlock flow.write_buffers_m;
-      Lwt.return (`Ok ())
+      Lwt.return (Ok ())
     end
   end
 
