@@ -1,3 +1,7 @@
+0.14.0 (2017-04-24)
+
+- Update to MirageOS 3 (#51, @samoht)
+
 0.13.0 (2017-01-20):
 - use scatter-gather I/O to minimise system calls
 - spawn a pair of blocking read/write threads, using a fixed amount
