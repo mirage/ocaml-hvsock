@@ -5,6 +5,7 @@ license: "ISC"
 homepage: "https://github.com/mirage/ocaml-hvsock"
 dev-repo: "https://github.com/mirage/ocaml-hvsock.git"
 bug-reports: "https://github.com/mirage/ocaml-hvsock/issues"
+doc: "https://mirage.github.io/ocaml-hvsock"
 
 build: [
   [ "jbuilder" "subst"] {pinned}
