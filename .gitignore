@@ -7,16 +7,10 @@
 *.cmx
 *.cmxs
 *.cmxa
+*.merlin
+*.install
 
-# ocamlbuild working directory
+# jbuilder working directory
 _build/
-
-# ocamlbuild targets
-*.byte
-*.native
-
-# oasis generated files
-setup.data
-setup.log
 
 lib_test/_tests
