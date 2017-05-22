@@ -22,13 +22,6 @@ type vmid =
   | Parent
   | Id of string
 
-let string_of_vmid = function
-  | Wildcard -> "*"
-  | Children -> "children"
-  | Loopback -> "loopback"
-  | Parent -> "parent"
-  | Id x -> x
-
 type sockaddr = {
   vmid: vmid;
   serviceid: string;
@@ -74,7 +67,7 @@ let create = do_socket
 let bind fd { vmid; serviceid } = do_bind fd (string_of_vmid vmid) serviceid
 
 let accept fd =
-  let c, vmid, serviceid = do_accept fd in
+  let _, vmid, serviceid = do_accept fd in
   let vmid = vmid_of_string vmid in
   fd, { vmid; serviceid }
 
