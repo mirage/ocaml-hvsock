@@ -4,5 +4,4 @@
 
 (install
  ((section bin)
-  (package hvcat)
   (files ((hvcat.exe as hvcat)))))

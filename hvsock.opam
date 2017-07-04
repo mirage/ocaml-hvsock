@@ -14,25 +14,24 @@ build: [
 
 build-test:[
   [ "jbuilder" "subst"] {pinned}
-  [ "jbuilder" "runtest" ]
+  [ "jbuilder" "runtest" "-p" name "-j" jobs ]
 ]
 
 depends: [
   "base-bytes"
   "base-threads"
+  "base-unix"
   "lwt" {>= "2.4.7"}
   "logs"
   "fmt"
-  "base-unix"
   "cmdliner"
   "mirage-flow-lwt" {>= "1.2.0"}
   "mirage-time-lwt" {>= "1.0.0"}
-  "cstruct"
+  "cstruct" {>= "2.4.0"}
   "duration"
   "bos"
-  "ocamlfind" {build}
-  "ocamlbuild" {build}
+  "jbuilder" {build & >="1.0+beta10"}
   "alcotest" {test & >= "0.4.0"}
 ]
 
-available: [ ocaml-version >= "4.02.3" ]
+available: [ ocaml-version >= "4.03.0" ]

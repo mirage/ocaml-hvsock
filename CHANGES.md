@@ -1,3 +1,8 @@
+## 1.0.0 (2017-07-04)
+
+- Port to Jbuilder
+- Minimum OCaml version is now 4.03.0
+
 ## 0.14.0 (2017-04-24)
 
 - Update to MirageOS 3 (#51, @samoht)

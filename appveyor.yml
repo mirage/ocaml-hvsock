@@ -2,6 +2,7 @@ platform:
   - x86
 
 environment:
+  PACKAGE: hvsock
   FORK_USER: ocaml
   FORK_BRANCH: master
   CYG_ROOT: C:\cygwin64
