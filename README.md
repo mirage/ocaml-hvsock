@@ -1,4 +1,4 @@
-# OCaml bindings for Hyper-V AF_VSOCK
+## ocaml-hvsock -- bindings for Hyper-V AF_VSOCK
 
 [![Build Status (Linux)](https://travis-ci.org/mirage/ocaml-hvsock.svg)](https://travis-ci.org/mirage/ocaml-hvsock)
 [![Build status (Windows)](https://ci.appveyor.com/api/projects/status/974tsg317b4k8xra?svg=true)](https://ci.appveyor.com/project/mirage/ocaml-hvsock/branch/master)
