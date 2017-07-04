@@ -5,17 +5,17 @@ license: "ISC"
 homepage: "https://github.com/mirage/ocaml-hvsock"
 dev-repo: "https://github.com/mirage/ocaml-hvsock.git"
 bug-reports: "https://github.com/mirage/ocaml-hvsock/issues"
+doc: "https://mirage.github.io/ocaml-hvsock"
 
 build: [
-  ["ocaml" "setup.ml" "-configure" "--%{alcotest:enable}%-tests" ]
-  [make]
+  [ "jbuilder" "subst"] {pinned}
+  [ "jbuilder" "build" "-p" name "-j" jobs ]
 ]
 
 build-test:[
-  [make "test"]
+  [ "jbuilder" "subst"] {pinned}
+  [ "jbuilder" "runtest" ]
 ]
-install: [make "install"]
-remove: ["ocamlfind" "remove" "hvsock"]
 
 depends: [
   "base-bytes"
