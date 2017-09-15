@@ -1,3 +1,9 @@
+## 1.0.1 (2017-09-15)
+
+- Move the Unix-independent module `Lwt_hvsock_main_thread` to `hvsock.lwt`
+  rather than `hvsock.lwt-unix`. Note there is a dependency from `hvsock.lwt-unix`
+  to `hvsock.lwt` so no user code needs to be adjusted.
+
 ## 1.0.0 (2017-07-04)
 
 - Port to Jbuilder
