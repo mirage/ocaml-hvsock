@@ -29,7 +29,6 @@ depends: [
   "mirage-time-lwt" {>= "1.0.0"}
   "cstruct" {>= "2.4.0"}
   "duration"
-  "bos"
   "jbuilder" {build & >="1.0+beta10"}
   "alcotest" {test & >= "0.4.0"}
 ]

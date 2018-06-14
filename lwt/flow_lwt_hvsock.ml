@@ -109,7 +109,7 @@ type 'a io = 'a Lwt.t
 type buffer = Cstruct.t
 
 type error = [ `Unix of Unix.error ]
-let pp_error = Bos.OS.U.pp_error
+let pp_error ppf (`Unix e) = Fmt.string ppf (Unix.error_message e)
 type write_error = [ Mirage_flow.write_error | error ]
 let pp_write_error ppf = function
   |#Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
