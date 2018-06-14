@@ -1,3 +1,8 @@
+## 1.0.2 (2018-06-14)
+
+- Remove unnecessary dependency on `Bos`
+- Require lwt 3.2.0 and later following the removal of lwt.preemptive
+
 ## 1.0.1 (2017-09-15)
 
 - Move the Unix-independent module `Lwt_hvsock_main_thread` to `hvsock.lwt`
