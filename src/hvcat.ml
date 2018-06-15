@@ -64,7 +64,7 @@ module Hv = Lwt_hvsock.Make(Time)(Lwt_hvsock_detach)
 
 let make_channels t =
   let read_buffer = Cstruct.create buffer_size in
-  let read b off len =
+  let read b off _len =
     Hv.read t read_buffer
     >>= fun n ->
     Lwt_bytes.blit read_buffer.Cstruct.buffer 0 b off n;

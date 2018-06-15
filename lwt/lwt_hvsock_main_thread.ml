@@ -15,7 +15,6 @@
  *
  *)
 
-open Hvsock
 open Lwt.Infix
 open Result
 

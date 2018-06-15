@@ -49,12 +49,6 @@ external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hv
 let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 
-type ('a, 'b) r =
-  | Ok of 'a
-  | Error of 'b
-
-type result = (int, exn) r
-
 type op = {
   file_descr: Unix.file_descr;
   buf: Cstruct.t;
@@ -94,40 +88,40 @@ let detach f x =
     (fun () -> Fn.destroy fn; Lwt.return_unit)
 
 let close t = match t with
-  | { fd = None } -> Lwt.return ()
-  | { fd = Some x } ->
+  | { fd = None; _ } -> Lwt.return ()
+  | { fd = Some x; _ } ->
     t.fd <- None;
     Fn.destroy t.read;
     Fn.destroy t.write;
     detach Unix.close x
 
 let bind t addr = match t with
-  | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
-  | { fd = Some x } -> bind x addr
+  | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
+  | { fd = Some x; _ } -> bind x addr
 
 let listen t n = match t with
-  | { fd = None } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
-  | { fd = Some x } -> Unix.listen x n
+  | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
+  | { fd = Some x; _ } -> Unix.listen x n
 
 let accept = function
-  | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))
-  | { fd = Some x } ->
+  | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))
+  | { fd = Some x; _ } ->
     detach accept x
     >>= fun (y, addr) ->
     Lwt.return (make y, addr)
 
 let connect ?timeout_ms t addr = match t with
-  | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "connect", ""))
-  | { fd = Some x } ->
+  | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "connect", ""))
+  | { fd = Some x; _ } ->
     detach (connect ?timeout_ms x) addr
 
 let read t buf = match t with
-  | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
-  | { fd = Some file_descr; read } ->
+  | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))
+  | { fd = Some file_descr; read; _ } ->
     Fn.fn read { file_descr; buf }
 
 let write t buf = match t with
-  | { fd = None } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
-  | { fd = Some file_descr; write } ->
+  | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "write", ""))
+  | { fd = Some file_descr; write; _ } ->
     Fn.fn write { file_descr; buf }
 end
