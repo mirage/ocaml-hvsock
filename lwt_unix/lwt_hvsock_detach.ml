@@ -15,8 +15,6 @@
  *
  *)
 
-open Lwt.Infix
-
 type ('request, 'response) t = 'request -> 'response
 let create f = f
 let destroy _ = ()

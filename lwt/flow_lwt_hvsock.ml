@@ -26,8 +26,6 @@ let src =
 module Log = (val Logs.src_log src : Logs.LOG)
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_send"
-let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 
 external stub_ba_sendv: Unix.file_descr -> (buffer * int * int) list -> int = "stub_hvsock_ba_sendv"
 let cstruct_writev fd bs =
@@ -38,8 +36,6 @@ external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hv
 let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
 
 module Cstructs = struct
-
-type t = Cstruct.t list
 
 let pp_t ppf t =
   List.iter (fun t ->
@@ -68,7 +64,7 @@ let rec shift t x =
       (* trim the length *)
       let rec trim acc ts remaining = match remaining, ts with
         | 0, _ -> List.rev acc
-        | n, [] -> err "invalid bounds in Cstructs.sub %a off=%d len=%d" pp_t t off len
+        | _, [] -> err "invalid bounds in Cstructs.sub %a off=%d len=%d" pp_t t off len
         | n, t :: ts ->
           let to_take = min (Cstruct.len t) n in
           (* either t is consumed and we only need ts, or t has data remaining in which
@@ -90,13 +86,6 @@ module Histogram = struct
       else 0 in
     Hashtbl.replace t size (existing + 1)
 
-  let dump t =
-    Printf.printf "length %d\n" (Hashtbl.length t);
-    Hashtbl.iter
-      (fun size n ->
-        Printf.printf "%d %d\n" size n
-      ) t;
-    Printf.printf "%!"
 end
 
 module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN) = struct
@@ -114,8 +103,6 @@ type write_error = [ Mirage_flow.write_error | error ]
 let pp_write_error ppf = function
   |#Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
   |#error as e -> pp_error ppf e
-
-let error_message = Unix.error_message
 
 type flow = {
   fd: Hvsock.t;
@@ -295,7 +282,7 @@ let read flow =
     end
   end
 
-let read_into flow buffer =
+let read_into _flow _buffer =
   (* Can we drop this function altogether? *)
   Log.err (fun f -> f "read_into not implemented");
   failwith "not implemented read_into"

@@ -69,8 +69,6 @@ let pp_write_error ppf = function
   | #Mirage_flow.write_error as e -> Mirage_flow.pp_write_error ppf e
   | #error as e -> pp_error ppf e
 
-let error_message = Unix.error_message
-
 type flow = {
   fd: Hvsock.t;
   rlock: Lwt_mutex.t;
