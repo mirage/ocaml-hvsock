@@ -67,9 +67,9 @@ let create = do_socket
 let bind fd { vmid; serviceid } = do_bind fd (string_of_vmid vmid) serviceid
 
 let accept fd =
-  let _, vmid, serviceid = do_accept fd in
+  let new_fd, vmid, serviceid = do_accept fd in
   let vmid = vmid_of_string vmid in
-  fd, { vmid; serviceid }
+  new_fd, { vmid; serviceid }
 
 let connect ?timeout_ms fd { vmid; serviceid } =
   ( match timeout_ms with
