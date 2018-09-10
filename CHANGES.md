@@ -1,3 +1,8 @@
+## 1.0.3 (2018-09-10)
+
+- Fix accept()
+- Fix warnings with jbuilder --dev
+
 ## 1.0.2 (2018-06-14)
 
 - Remove unnecessary dependency on `Bos`
