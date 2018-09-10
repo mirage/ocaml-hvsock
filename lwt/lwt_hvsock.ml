@@ -39,6 +39,8 @@ module type HVSOCK = sig
   val read: t -> Cstruct.t -> int Lwt.t
   val write: t -> Cstruct.t -> int Lwt.t
   val close: t -> unit Lwt.t
+  val shutdown_read: t -> unit Lwt.t
+  val shutdown_write: t -> unit Lwt.t
 end
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
@@ -94,6 +96,16 @@ let close t = match t with
     Fn.destroy t.read;
     Fn.destroy t.write;
     detach Unix.close x
+
+let shutdown_read t = match t with
+  | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "shutdown_read", ""))
+  | { fd = Some x; _ } ->
+    detach (Unix.shutdown x) Unix.SHUTDOWN_RECEIVE
+
+let shutdown_write t = match t with
+  | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "shutdown_write", ""))
+  | { fd = Some x; _ } ->
+    detach (Unix.shutdown x) Unix.SHUTDOWN_SEND
 
 let bind t addr = match t with
   | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))

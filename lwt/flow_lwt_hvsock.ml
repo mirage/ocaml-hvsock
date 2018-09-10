@@ -123,6 +123,8 @@ type flow = {
   mutable write_flushed: bool;
   write_histogram: Histogram.t;
   mutable closed: bool;
+  mutable shutdown_read: bool;
+  mutable shutdown_write: bool;
   mutable write_error: bool;
 }
 
@@ -144,12 +146,15 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
   let write_flushed = false in
   let write_histogram = Histogram.create () in
   let closed = false in
+  let shutdown_read = false in
+  let shutdown_write = false in
   let write_error = false in
 
   let t = { fd; read_buffers_max; read_max; read_buffers; read_buffers_len;
     read_buffers_m; read_buffers_c; read_error; write_buffers; write_buffers_len;
-    write_buffers_m; write_buffers_c; closed; write_buffers_max; write_max; write_flushed;
-    write_error; read_histogram; write_histogram } in
+    write_buffers_m; write_buffers_c; closed; shutdown_read; shutdown_write;
+    write_buffers_max; write_max; write_flushed; write_error;
+    read_histogram; write_histogram } in
 
   let write_thread () =
     let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
@@ -165,7 +170,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       Condition.broadcast write_buffers_c;
       List.rev result  in
     try
-      while not t.closed do
+      while not t.closed && not t.shutdown_write do
         let buffers = get_buffers () in
         let rec loop remaining =
           if Cstructs.len remaining = 0 then () else begin
@@ -198,7 +203,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       Mutex.unlock t.read_buffers_m;
       buf in
     try
-      while not t.closed do
+      while not t.closed && not t.shutdown_read do
         let buffer = get_buffer () in
         let rec loop remaining =
           if Cstruct.len remaining = 0 then () else begin
@@ -212,7 +217,10 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             t.read_buffers_len <- t.read_buffers_len + (Cstruct.len data);
             Mutex.unlock t.read_buffers_m;
             Condition.broadcast t.read_buffers_c;
-            loop @@ Cstruct.shift remaining n
+            if n = 0 then begin
+              Log.err (fun f -> f "Read of length 0 from AF_HVSOCK");
+              raise End_of_file
+            end else loop @@ Cstruct.shift remaining n
           end in
         loop buffer
       done
@@ -250,6 +258,27 @@ let close t =
   | true ->
     Lwt.return ()
 
+let shutdown_read t =
+  Log.warn (fun f -> f "FLOW.shutdown_read called");
+  match t.shutdown_read || t.closed with
+  | true ->
+    Lwt.return_unit
+  | false ->
+    t.shutdown_read <- true;
+    Hvsock.shutdown_read t.fd
+
+let shutdown_write t =
+  Log.warn (fun f -> f "FLOW.shutdown_write called");
+  match t.shutdown_write || t.closed with
+  | true ->
+    Lwt.return ()
+  | false ->
+    t.shutdown_write <- true;
+    Condition.broadcast t.write_buffers_c;
+    detach wait_write_flush t
+    >>= fun () ->
+    Hvsock.shutdown_write t.fd
+
 let wait_for_data flow n =
   Mutex.lock flow.read_buffers_m;
   while flow.read_buffers_len < n do
@@ -258,7 +287,7 @@ let wait_for_data flow n =
   Mutex.unlock flow.read_buffers_m
 
 let read flow =
-  if flow.closed || flow.read_error then Lwt.return (Ok `Eof)
+  if flow.closed || flow.shutdown_read || flow.read_error then Lwt.return (Ok `Eof)
   else begin
     Mutex.lock flow.read_buffers_m;
     let take () =
@@ -295,7 +324,7 @@ let wait_for_space flow n =
   Mutex.unlock flow.write_buffers_m
 
 let writev flow bufs =
-  if flow.closed || flow.write_error then Lwt.return (Error `Closed) else begin
+  if flow.closed || flow.shutdown_write || flow.write_error then Lwt.return (Error `Closed) else begin
     let len = List.fold_left (+) 0 (List.map Cstruct.len bufs) in
     Mutex.lock flow.write_buffers_m;
     let put () =
