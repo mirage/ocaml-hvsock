@@ -125,6 +125,7 @@ type flow = {
   mutable closed: bool;
   mutable shutdown_read: bool;
   mutable shutdown_write: bool;
+  mutable shutdown_write_complete: bool;
   mutable write_error: bool;
 }
 
@@ -148,11 +149,13 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
   let closed = false in
   let shutdown_read = false in
   let shutdown_write = false in
+  let shutdown_write_complete = false in
   let write_error = false in
 
   let t = { fd; read_buffers_max; read_max; read_buffers; read_buffers_len;
     read_buffers_m; read_buffers_c; read_error; write_buffers; write_buffers_len;
-    write_buffers_m; write_buffers_c; closed; shutdown_read; shutdown_write;
+    write_buffers_m; write_buffers_c; closed; shutdown_read;
+    shutdown_write; shutdown_write_complete;
     write_buffers_max; write_max; write_flushed; write_error;
     read_histogram; write_histogram } in
 
@@ -160,31 +163,39 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
     let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
     let get_buffers () =
       Mutex.lock write_buffers_m;
-      while t.write_buffers = [] do
+      while t.write_buffers = [] && not t.shutdown_write do
         Condition.wait write_buffers_c write_buffers_m
       done;
       let result = t.write_buffers in
       t.write_buffers <- [];
       t.write_buffers_len <- 0;
+      if t.shutdown_write then t.shutdown_write_complete <- true;
       Mutex.unlock write_buffers_m;
       Condition.broadcast write_buffers_c;
       List.rev result  in
     try
-      while not t.closed && not t.shutdown_write do
+      while not t.closed && not t.shutdown_write_complete do
+        Printf.fprintf stderr "write_thread get_buffers()\n%!";
         let buffers = get_buffers () in
         let rec loop remaining =
-          if Cstructs.len remaining = 0 then () else begin
+          if Cstructs.len remaining = 0 then begin
+            Printf.fprintf stderr "write_thread EOF\n%!";
+          end else begin
             let to_write = min t.write_max (Cstructs.len remaining) in
             Histogram.add t.write_histogram to_write;
             let buf = Cstructs.sub remaining 0 to_write in
+            Printf.fprintf stderr "write_thread writing %d\n" (Cstructs.len buf);
             let n = cstruct_writev fd buf in
+            Printf.fprintf stderr "write_thread read %d\n%!" n;
             loop @@ Cstructs.shift remaining n
           end in
         loop buffers
       done;
+      Printf.fprintf stderr "write_thread write_flushed <- true\n%!";
       t.write_flushed <- true;
       Condition.broadcast write_buffers_c
     with e ->
+      Printf.fprintf stderr "write_thread caught %s%!" (Printexc.to_string e);
       Log.err (fun f -> f "Flow write_thread caught: %s" (Printexc.to_string e));
       t.write_error <- true;
       t.write_flushed <- true;
@@ -273,10 +284,12 @@ let shutdown_write t =
   | true ->
     Lwt.return ()
   | false ->
+    Printf.fprintf stderr "shutting down writer thread\n%!";
     t.shutdown_write <- true;
     Condition.broadcast t.write_buffers_c;
     detach wait_write_flush t
     >>= fun () ->
+    Printf.fprintf stderr "shutdown_write\n%!";
     Hvsock.shutdown_write t.fd
 
 let wait_for_data flow n =
