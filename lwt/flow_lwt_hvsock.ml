@@ -186,7 +186,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             let buf = Cstructs.sub remaining 0 to_write in
             Printf.fprintf stderr "write_thread writing %d\n" (Cstructs.len buf);
             let n = cstruct_writev fd buf in
-            Printf.fprintf stderr "write_thread read %d\n%!" n;
+            Printf.fprintf stderr "write_thread wrote %d\n%!" n;
             loop @@ Cstructs.shift remaining n
           end in
         loop buffers
@@ -217,11 +217,15 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       while not t.closed && not t.shutdown_read do
         let buffer = get_buffer () in
         let rec loop remaining =
-          if Cstruct.len remaining = 0 then () else begin
+          if Cstruct.len remaining = 0 then begin
+            Printf.fprintf stderr "read_thread EOF\n%!"
+          end else begin
             let to_read = min t.read_max (Cstruct.len remaining) in
             let buf = Cstruct.sub remaining 0 to_read in
             Histogram.add t.read_histogram to_read;
+            Printf.fprintf stderr "read_thread reading...\n%!";
             let n = cstruct_read fd buf in
+            Printf.fprintf stderr "read_thread read %d\n%!" n;
             let data = Cstruct.sub remaining 0 n in
             Mutex.lock t.read_buffers_m;
             t.read_buffers <- t.read_buffers @ [ data ];
@@ -229,6 +233,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             Mutex.unlock t.read_buffers_m;
             Condition.broadcast t.read_buffers_c;
             if n = 0 then begin
+              Printf.fprintf stderr "read_thread read length 0\n%!";
               Log.err (fun f -> f "Read of length 0 from AF_HVSOCK");
               raise End_of_file
             end else loop @@ Cstruct.shift remaining n
@@ -237,6 +242,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       done
     with e ->
       Log.err (fun f -> f "Flow read_thread caught: %s" (Printexc.to_string e));
+      Printf.fprintf stderr "read_thread read_error <- true\n%!";
       t.read_error <- true;
       Condition.broadcast read_buffers_c
     in
@@ -270,15 +276,18 @@ let close t =
     Lwt.return ()
 
 let shutdown_read t =
+  (* When we shutdown_read we don't care about any buffered data. *)
   Log.warn (fun f -> f "FLOW.shutdown_read called");
   match t.shutdown_read || t.closed with
   | true ->
     Lwt.return_unit
   | false ->
+    Printf.fprintf stderr "shutdown_read <- true\n%!";
     t.shutdown_read <- true;
     Hvsock.shutdown_read t.fd
 
 let shutdown_write t =
+  (* When we shutdown_write we still expect buffered data to be flushed. *)
   Log.warn (fun f -> f "FLOW.shutdown_write called");
   match t.shutdown_write || t.closed with
   | true ->
@@ -292,35 +301,41 @@ let shutdown_write t =
     Printf.fprintf stderr "shutdown_write\n%!";
     Hvsock.shutdown_write t.fd
 
-let wait_for_data flow n =
+(* Block until either data is available or an error (which should manifest as EOF) *)
+let wait_for_data_or_error flow n =
   Mutex.lock flow.read_buffers_m;
-  while flow.read_buffers_len < n do
+  while flow.read_buffers_len < n && not flow.read_error do
     Condition.wait flow.read_buffers_c flow.read_buffers_m;
   done;
   Mutex.unlock flow.read_buffers_m
 
 let read flow =
+  (* On shutdown_read we drop buffered data. *)
   if flow.closed || flow.shutdown_read || flow.read_error then Lwt.return (Ok `Eof)
   else begin
     Mutex.lock flow.read_buffers_m;
     let take () =
-      let result = List.hd flow.read_buffers in
-      flow.read_buffers <- List.tl flow.read_buffers;
-      flow.read_buffers_len <- flow.read_buffers_len - (Cstruct.len result);
-      Condition.broadcast flow.read_buffers_c;
-      result in
+      match flow.read_buffers with
+      | result :: rest ->
+        flow.read_buffers <- rest;
+        flow.read_buffers_len <- flow.read_buffers_len - (Cstruct.len result);
+        Condition.broadcast flow.read_buffers_c;
+        `Data result
+      | [] ->
+        (* Some read error means we now have an EOF *)
+        `Eof in
     if flow.read_buffers = [] then begin
       Mutex.unlock flow.read_buffers_m;
-      detach (wait_for_data flow) 1 >|= fun () ->
+      detach (wait_for_data_or_error flow) 1 >|= fun () ->
       (* Assume for now there's only one reader so no-one will steal the data *)
       Mutex.lock flow.read_buffers_m;
       let result = take () in
       Mutex.unlock flow.read_buffers_m;
-      Ok (`Data result)
+      Ok result
     end else begin
       let result = take () in
       Mutex.unlock flow.read_buffers_m;
-      Lwt.return (Ok (`Data result))
+      Lwt.return (Ok result)
     end
   end
 
