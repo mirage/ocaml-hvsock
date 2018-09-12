@@ -192,14 +192,18 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
         loop buffers
       done;
       Printf.fprintf stderr "write_thread write_flushed <- true\n%!";
+      Mutex.lock write_buffers_m;
       t.write_flushed <- true;
-      Condition.broadcast write_buffers_c
+      Condition.broadcast write_buffers_c;
+      Mutex.unlock write_buffers_m
     with e ->
       Printf.fprintf stderr "write_thread caught %s%!" (Printexc.to_string e);
       Log.err (fun f -> f "Flow write_thread caught: %s" (Printexc.to_string e));
+      Mutex.lock write_buffers_m;
       t.write_error <- true;
       t.write_flushed <- true;
-      Condition.broadcast write_buffers_c
+      Condition.broadcast write_buffers_c;
+      Mutex.unlock write_buffers_m
     in
   let _ = Thread.create write_thread () in
   let read_thread () =
@@ -230,8 +234,8 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             Mutex.lock t.read_buffers_m;
             t.read_buffers <- t.read_buffers @ [ data ];
             t.read_buffers_len <- t.read_buffers_len + (Cstruct.len data);
-            Mutex.unlock t.read_buffers_m;
             Condition.broadcast t.read_buffers_c;
+            Mutex.unlock t.read_buffers_m;
             if n = 0 then begin
               Printf.fprintf stderr "read_thread read length 0\n%!";
               Log.err (fun f -> f "Read of length 0 from AF_HVSOCK");
@@ -243,8 +247,10 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
     with e ->
       Log.err (fun f -> f "Flow read_thread caught: %s" (Printexc.to_string e));
       Printf.fprintf stderr "read_thread read_error <- true\n%!";
+      Mutex.lock t.read_buffers_m;
       t.read_error <- true;
-      Condition.broadcast read_buffers_c
+      Condition.broadcast read_buffers_c;
+      Mutex.unlock t.read_buffers_m
     in
   let _ = Thread.create read_thread () in
   t
@@ -267,8 +273,10 @@ let close t =
   Log.warn (fun f -> f "FLOW.close called");
   match t.closed with
   | false ->
+    Mutex.lock t.write_buffers_m;
     t.closed <- true;
     Condition.broadcast t.write_buffers_c;
+    Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
     >>= fun () ->
     Hvsock.close t.fd
@@ -294,8 +302,10 @@ let shutdown_write t =
     Lwt.return ()
   | false ->
     Printf.fprintf stderr "shutting down writer thread\n%!";
+    Mutex.lock t.write_buffers_m;
     t.shutdown_write <- true;
     Condition.broadcast t.write_buffers_c;
+    Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
     >>= fun () ->
     Printf.fprintf stderr "shutdown_write\n%!";
