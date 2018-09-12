@@ -58,7 +58,7 @@ let send_receive_verify flow =
     >>= function
     | Ok `Eof ->
       Printf.fprintf stderr "Reader read total %d bytes\n%!" n;
-      Lwt.return ()
+      Lwt.return n
     | Ok (`Data buf) ->
       Printf.fprintf stderr "read(%d)\n%!" (Cstruct.len buf);
       let s = Cstruct.to_string buf in
@@ -67,60 +67,64 @@ let send_receive_verify flow =
     | Error _ ->
       failwith "Flow read error" in
   let writer_sha = Sha256.init () in
-  let rec writer n remaining =
-    if remaining = 0 then begin
-      (* FIXME: this really should be close *)
-      Hv.shutdown_write flow
-      >>= fun () ->
-      Printf.fprintf stderr "Writer wrote total %d bytes\n%!" n;
-      Lwt.return ()
-    end else begin
-      let this_time = min buffer_size remaining in
-      let buf = Cstruct.create this_time in
-      for i = 0 to Cstruct.len buf - 1 do
-        Cstruct.set_uint8 buf i (Random.int 255)
-      done;
-      let s = Cstruct.to_string buf in
-      Printf.fprintf stderr "about to write\n%!";
-      Hv.write flow buf
-      >>= function
-      | Ok () ->
-        Printf.fprintf stderr "write(%d)\n%!" n;
-        Sha256.update_string writer_sha s;
-        writer n (remaining - this_time)
-      | Error _ ->
-        Printf.fprintf stderr "write failed\n%!";
-        failwith "Flow write error"
-    end in
+  let writer n =
+    let rec loop remaining =
+      if remaining = 0 then begin
+        (* FIXME: this really should be close *)
+        Hv.shutdown_write flow
+        >>= fun () ->
+        Printf.fprintf stderr "Writer wrote total %d bytes\n%!" n;
+        Lwt.return ()
+      end else begin
+        let this_time = min buffer_size remaining in
+        let buf = Cstruct.create this_time in
+        for i = 0 to Cstruct.len buf - 1 do
+          Cstruct.set_uint8 buf i (Random.int 255)
+        done;
+        let s = Cstruct.to_string buf in
+        Printf.fprintf stderr "about to write\n%!";
+        Hv.write flow buf
+        >>= function
+        | Ok () ->
+          Printf.fprintf stderr "write(%d)\n%!" n;
+          Sha256.update_string writer_sha s;
+          loop (remaining - this_time)
+        | Error _ ->
+          Printf.fprintf stderr "write failed\n%!";
+          failwith "Flow write error"
+      end in
+    loop n in
   (* let n = Random.int (1024 * 1024) in *)
-  let n = 1024 in
+  let n_written = 1024 in
   Printf.fprintf stderr "starting threads\n%!";
-  writer n n
+  let writer_t = writer n_written in
+  let reader_t = reader 0 in
+  Lwt.join [ (reader_t >>= fun _ -> Lwt.return ()); writer_t ]
   >>= fun () ->
-  reader 0
-  >>= fun () ->
-  (* Lwt.join [ reader 0; writer n n ]
-  >>= fun () -> *)
-  let reader = Sha256.(to_hex @@ finalize reader_sha) in
-  let writer = Sha256.(to_hex @@ finalize writer_sha) in
-  Printf.printf "reader = %s\nwriter = %s\n" reader writer;
+  reader_t
+  >>= fun n_read ->
+  let read_sha = Sha256.(to_hex @@ finalize reader_sha) in
+  let write_sha = Sha256.(to_hex @@ finalize writer_sha) in
+  Printf.printf "reader = %s\nwriter = %s\n" read_sha write_sha;
+  if read_sha <> write_sha
+  then failwith (Printf.sprintf "Checksum does not match. Written %d (%s), read %d (%s)" n_written write_sha n_read read_sha);
   Lwt.return_unit
 
-let client vmid =
-  try
-    connect vmid default_serviceid
-    >>= fun flow ->
-    Printf.fprintf stderr "Connected\n%!";
-    send_receive_verify flow
-    >>= fun () ->
-    Printf.fprintf stderr "Closing\n%!";
-    Hv.close flow
-  with
-  | Unix.Unix_error(Unix.ENOENT, _, _) ->
-    Printf.fprintf stderr "Server not found (ENOENT)\n";
-    Lwt.return ()
+let one vmid =
+  connect vmid default_serviceid
+  >>= fun flow ->
+  Printf.fprintf stderr "Connected\n%!";
+  send_receive_verify flow
+  >>= fun () ->
+  Printf.fprintf stderr "Closing\n%!";
+  Hv.close flow
 
-let main c =
+let client vmid p =
+  let rec threads n =
+    if n = 0 then [] else (one vmid) :: (threads (n-1)) in
+  Lwt.join (threads p)
+
+let main c p =
   match c with
   | None ->
     Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -129,7 +133,7 @@ let main c =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Id vmid));
+      Lwt_main.run (client (Hvsock.Id vmid) p);
       `Ok ()
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -142,6 +146,9 @@ let main c =
 let c =
   Arg.(value & opt (some string) None & info ~docv:"CLIENT" ~doc:"Run as a client" [ "c" ])
 
+let p =
+  Arg.(value & opt int 1 & info ~docv:"PARALLEL" ~doc:"Threads to run in parallel" [ "p" ])
+
 let cmd =
   let doc = "Test AF_HVSOCK connections" in
   let man = [
@@ -151,7 +158,7 @@ let cmd =
     `P "To connect to a service in a remote partition:";
     `P "sock_stress -c hvsock://<vmid>";
   ] in
-  Term.(const main $ c),
+  Term.(const main $ c $ p),
   Term.info "sock_stress" ~version:"%0.1" ~doc ~exits:Term.default_exits ~man
 
 let () =
