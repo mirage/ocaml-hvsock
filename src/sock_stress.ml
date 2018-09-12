@@ -22,6 +22,13 @@ let sigint_t, sigint_u = Lwt.task ()
 
 open Cmdliner
 
+let debug fmt =
+  Printf.ksprintf (fun s ->
+    output_string stderr s;
+    output_string stderr "\n";
+    flush stderr
+  ) fmt
+
 let default_serviceid =
   Printf.sprintf "%08x-FACB-11E6-BD58-64006A7986D3" 0x5653 (* matches virtsock/cmd/sock_stress/vsock.go *)
 
@@ -33,7 +40,7 @@ module Time = struct
 end
 module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)
 
-let rec connect vmid serviceid =
+let rec connect i vmid serviceid =
   let fd = Hv.Hvsock.create () in
   Lwt.catch
     (fun () ->
@@ -42,25 +49,25 @@ let rec connect vmid serviceid =
       let flow = Hv.connect fd in
       Lwt.return flow
     ) (fun e ->
-      Printf.fprintf stderr "connect raised %s: sleep 1s and retrying\n%!" (Printexc.to_string e);
+      debug "%d: connect raised %s: sleep 1s and retrying" i (Printexc.to_string e);
       Hv.Hvsock.close fd
       >>= fun () ->
       Lwt_unix.sleep 1.
       >>= fun () ->
-      connect vmid serviceid
+      connect i vmid serviceid
     )
 
-let send_receive_verify flow =
+let send_receive_verify i flow =
   let reader_sha = Sha256.init () in
   let rec reader n =
-    Printf.fprintf stderr "about to read\n%!";
+    debug "%d: send_receive_verify reader read..." i;
     Hv.read flow
     >>= function
     | Ok `Eof ->
-      Printf.fprintf stderr "Reader read total %d bytes\n%!" n;
+      debug "%d: send_receive_verify reader EOF after %d bytes" i n;
       Lwt.return n
     | Ok (`Data buf) ->
-      Printf.fprintf stderr "read(%d)\n%!" (Cstruct.len buf);
+      debug "%d: send_receive_verify reader read %d" i (Cstruct.len buf);
       let s = Cstruct.to_string buf in
       Sha256.update_string reader_sha s;
       reader (n + (Cstruct.len buf))
@@ -73,7 +80,7 @@ let send_receive_verify flow =
         (* FIXME: this really should be close *)
         Hv.shutdown_write flow
         >>= fun () ->
-        Printf.fprintf stderr "Writer wrote total %d bytes\n%!" n;
+        debug "%d: send_receive_verify writer loop shutdown_write after %d bytes" i n;
         Lwt.return ()
       end else begin
         let this_time = min buffer_size remaining in
@@ -82,21 +89,19 @@ let send_receive_verify flow =
           Cstruct.set_uint8 buf i (Random.int 255)
         done;
         let s = Cstruct.to_string buf in
-        Printf.fprintf stderr "about to write\n%!";
+        debug "%d: send_receive_verify writer loop write..." i;
         Hv.write flow buf
         >>= function
         | Ok () ->
-          Printf.fprintf stderr "write(%d)\n%!" n;
+          debug "%d: send_receive_verify writer loop written %d" i this_time;
           Sha256.update_string writer_sha s;
           loop (remaining - this_time)
         | Error _ ->
-          Printf.fprintf stderr "write failed\n%!";
           failwith "Flow write error"
       end in
     loop n in
   (* let n = Random.int (1024 * 1024) in *)
   let n_written = 1024 in
-  Printf.fprintf stderr "starting threads\n%!";
   let writer_t = writer n_written in
   let reader_t = reader 0 in
   Lwt.join [ (reader_t >>= fun _ -> Lwt.return ()); writer_t ]
@@ -105,24 +110,25 @@ let send_receive_verify flow =
   >>= fun n_read ->
   let read_sha = Sha256.(to_hex @@ finalize reader_sha) in
   let write_sha = Sha256.(to_hex @@ finalize writer_sha) in
-  Printf.printf "reader = %s\nwriter = %s\n" read_sha write_sha;
+  debug "%d: reader SHA = %s" i read_sha;
+  debug "%d: writer SHA = %s" i write_sha;
   if read_sha <> write_sha
   then failwith (Printf.sprintf "Checksum does not match. Written %d (%s), read %d (%s)" n_written write_sha n_read read_sha);
   Lwt.return_unit
 
-let one vmid =
-  connect vmid default_serviceid
+let one i vmid =
+  connect i vmid default_serviceid
   >>= fun flow ->
-  Printf.fprintf stderr "Connected\n%!";
-  send_receive_verify flow
+  debug "%d: connected" i;
+  send_receive_verify i flow
   >>= fun () ->
-  Printf.fprintf stderr "Closing\n%!";
+  debug "%d: closing" i;
   Hv.close flow
 
 let client vmid p =
   let rec threads n =
-    if n = 0 then [] else (one vmid) :: (threads (n-1)) in
-  Lwt.join (threads p)
+    if n = p then [] else (one n vmid) :: (threads (n+1)) in
+  Lwt.join (threads 0)
 
 let main c p =
   match c with
