@@ -116,21 +116,28 @@ let send_receive_verify i flow =
   then failwith (Printf.sprintf "Checksum does not match. Written %d (%s), read %d (%s)" n_written write_sha n_read read_sha);
   Lwt.return_unit
 
-let one i vmid =
-  connect i vmid default_serviceid
-  >>= fun flow ->
-  debug "%d: connected" i;
-  send_receive_verify i flow
-  >>= fun () ->
-  debug "%d: closing" i;
-  Hv.close flow
-
-let client vmid p =
+let client vmid p connections_remaining =
+  let connections_remaining = ref connections_remaining in
+  let rec loop i =
+    if !connections_remaining = 0
+    then Lwt.return () else begin
+      debug "connections_remaining = %d" !connections_remaining;
+      decr connections_remaining;
+      connect i vmid default_serviceid
+      >>= fun flow ->
+      debug "%d: connected" i;
+      send_receive_verify i flow
+      >>= fun () ->
+      debug "%d: closing" i;
+      Hv.close flow
+      >>= fun () ->
+      loop i
+    end in
   let rec threads n =
-    if n = p then [] else (one n vmid) :: (threads (n+1)) in
+    if n = p then [] else (loop n) :: (threads (n+1)) in
   Lwt.join (threads 0)
 
-let main c p =
+let main c p i =
   match c with
   | None ->
     Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -139,7 +146,7 @@ let main c p =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Id vmid) p);
+      Lwt_main.run (client (Hvsock.Id vmid) p i);
       `Ok ()
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -155,6 +162,9 @@ let c =
 let p =
   Arg.(value & opt int 1 & info ~docv:"PARALLEL" ~doc:"Threads to run in parallel" [ "p" ])
 
+let i =
+  Arg.(value & opt int 100 & info ~docv:"CONNECTIONS" ~doc:"Total number of connections" [ "i" ])
+
 let cmd =
   let doc = "Test AF_HVSOCK connections" in
   let man = [
@@ -164,7 +174,7 @@ let cmd =
     `P "To connect to a service in a remote partition:";
     `P "sock_stress -c hvsock://<vmid>";
   ] in
-  Term.(const main $ c $ p),
+  Term.(const main $ c $ p $ i),
   Term.info "sock_stress" ~version:"%0.1" ~doc ~exits:Term.default_exits ~man
 
 let () =
