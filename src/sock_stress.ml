@@ -22,11 +22,15 @@ let sigint_t, sigint_u = Lwt.task ()
 
 open Cmdliner
 
+let debug_print = ref false
+
 let debug fmt =
   Printf.ksprintf (fun s ->
-    output_string stderr s;
-    output_string stderr "\n";
-    flush stderr
+    if !debug_print then begin
+      output_string stderr s;
+      output_string stderr "\n";
+      flush stderr
+    end
   ) fmt
 
 let default_serviceid =
@@ -137,7 +141,8 @@ let client vmid p connections_remaining =
     if n = p then [] else (loop n) :: (threads (n+1)) in
   Lwt.join (threads 0)
 
-let main c p i =
+let main c p i v =
+  debug_print := v;
   match c with
   | None ->
     Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -165,6 +170,9 @@ let p =
 let i =
   Arg.(value & opt int 100 & info ~docv:"CONNECTIONS" ~doc:"Total number of connections" [ "i" ])
 
+let v =
+  Arg.(value & flag & info [ "v"; "verbose" ] ~doc:"Enable verbose debug")
+
 let cmd =
   let doc = "Test AF_HVSOCK connections" in
   let man = [
@@ -174,7 +182,7 @@ let cmd =
     `P "To connect to a service in a remote partition:";
     `P "sock_stress -c hvsock://<vmid>";
   ] in
-  Term.(const main $ c $ p $ i),
+  Term.(const main $ c $ p $ i $ v),
   Term.info "sock_stress" ~version:"%0.1" ~doc ~exits:Term.default_exits ~man
 
 let () =
