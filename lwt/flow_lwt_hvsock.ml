@@ -129,6 +129,16 @@ type flow = {
   mutable write_error: bool;
 }
 
+let debug_print = ref false
+let debug fmt =
+Printf.ksprintf (fun s ->
+  if !debug_print then begin
+    output_string stderr s;
+    output_string stderr "\n";
+    flush stderr
+  end
+) fmt
+
 let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
   let read_buffers_max = buffer_size in
   let read_max = message_size in
@@ -159,6 +169,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
     write_buffers_max; write_max; write_flushed; write_error;
     read_histogram; write_histogram } in
 
+
   let write_thread () =
     let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
     let get_buffers () =
@@ -175,29 +186,29 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       List.rev result  in
     try
       while not t.closed && not t.shutdown_write_complete do
-        Printf.fprintf stderr "write_thread get_buffers()\n%!";
+        debug "write_thread get_buffers()";
         let buffers = get_buffers () in
         let rec loop remaining =
           if Cstructs.len remaining = 0 then begin
-            Printf.fprintf stderr "write_thread EOF\n%!";
+            debug "write_thread EOF";
           end else begin
             let to_write = min t.write_max (Cstructs.len remaining) in
             Histogram.add t.write_histogram to_write;
             let buf = Cstructs.sub remaining 0 to_write in
-            Printf.fprintf stderr "write_thread writing %d\n" (Cstructs.len buf);
+            debug "write_thread writing %d" (Cstructs.len buf);
             let n = cstruct_writev fd buf in
-            Printf.fprintf stderr "write_thread wrote %d\n%!" n;
+            debug "write_thread wrote %d" n;
             loop @@ Cstructs.shift remaining n
           end in
         loop buffers
       done;
-      Printf.fprintf stderr "write_thread write_flushed <- true\n%!";
+      debug "write_thread write_flushed <- true";
       Mutex.lock write_buffers_m;
       t.write_flushed <- true;
       Condition.broadcast write_buffers_c;
       Mutex.unlock write_buffers_m
     with e ->
-      Printf.fprintf stderr "write_thread caught %s%!" (Printexc.to_string e);
+      debug "write_thread caught %s" (Printexc.to_string e);
       Log.err (fun f -> f "Flow write_thread caught: %s" (Printexc.to_string e));
       Mutex.lock write_buffers_m;
       t.write_error <- true;
@@ -222,14 +233,14 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
         let buffer = get_buffer () in
         let rec loop remaining =
           if Cstruct.len remaining = 0 then begin
-            Printf.fprintf stderr "read_thread EOF\n%!"
+            debug "read_thread EOF"
           end else begin
             let to_read = min t.read_max (Cstruct.len remaining) in
             let buf = Cstruct.sub remaining 0 to_read in
             Histogram.add t.read_histogram to_read;
-            Printf.fprintf stderr "read_thread reading...\n%!";
+            debug "read_thread reading...";
             let n = cstruct_read fd buf in
-            Printf.fprintf stderr "read_thread read %d\n%!" n;
+            debug "read_thread read %d" n;
             let data = Cstruct.sub remaining 0 n in
             Mutex.lock t.read_buffers_m;
             t.read_buffers <- t.read_buffers @ [ data ];
@@ -237,7 +248,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             Condition.broadcast t.read_buffers_c;
             Mutex.unlock t.read_buffers_m;
             if n = 0 then begin
-              Printf.fprintf stderr "read_thread read length 0\n%!";
+              debug "read_thread read length 0";
               Log.err (fun f -> f "Read of length 0 from AF_HVSOCK");
               raise End_of_file
             end else loop @@ Cstruct.shift remaining n
@@ -246,7 +257,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       done
     with e ->
       Log.err (fun f -> f "Flow read_thread caught: %s" (Printexc.to_string e));
-      Printf.fprintf stderr "read_thread read_error <- true\n%!";
+      debug "read_thread read_error <- true";
       Mutex.lock t.read_buffers_m;
       t.read_error <- true;
       Condition.broadcast read_buffers_c;
@@ -290,7 +301,7 @@ let shutdown_read t =
   | true ->
     Lwt.return_unit
   | false ->
-    Printf.fprintf stderr "shutdown_read <- true\n%!";
+    debug "shutdown_read <- true";
     t.shutdown_read <- true;
     Hvsock.shutdown_read t.fd
 
@@ -301,14 +312,14 @@ let shutdown_write t =
   | true ->
     Lwt.return ()
   | false ->
-    Printf.fprintf stderr "shutting down writer thread\n%!";
+    debug "shutting down writer thread";
     Mutex.lock t.write_buffers_m;
     t.shutdown_write <- true;
     Condition.broadcast t.write_buffers_c;
     Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
     >>= fun () ->
-    Printf.fprintf stderr "shutdown_write\n%!";
+    debug "shutdown_write";
     Hvsock.shutdown_write t.fd
 
 (* Block until either data is available or an error (which should manifest as EOF) *)
