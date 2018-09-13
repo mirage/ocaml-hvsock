@@ -61,7 +61,7 @@ let rec connect i vmid serviceid =
       connect i vmid serviceid
     )
 
-let send_receive_verify i flow =
+let send_receive_verify i flow max_data_length =
   let reader_sha = Sha256.init () in
   let rec reader n =
     debug "%d: send_receive_verify reader read..." i;
@@ -104,7 +104,7 @@ let send_receive_verify i flow =
           failwith "Flow write error"
       end in
     loop n in
-  let n_written = Random.int (1024 * 1024) in
+  let n_written = Random.int max_data_length in
   let writer_t = writer n_written in
   let reader_t = reader 0 in
   Lwt.join [ (reader_t >>= fun _ -> Lwt.return ()); writer_t ]
@@ -119,7 +119,7 @@ let send_receive_verify i flow =
   then failwith (Printf.sprintf "Checksum does not match. Written %d (%s), read %d (%s)" n_written write_sha n_read read_sha);
   Lwt.return_unit
 
-let client vmid p connections_remaining =
+let client vmid p connections_remaining max_data_length =
   let connections_remaining = ref connections_remaining in
   let rec loop i =
     if !connections_remaining = 0
@@ -129,7 +129,7 @@ let client vmid p connections_remaining =
       connect i vmid default_serviceid
       >>= fun flow ->
       debug "%d: connected" i;
-      send_receive_verify i flow
+      send_receive_verify i flow max_data_length
       >>= fun () ->
       debug "%d: closing" i;
       Hv.close flow
@@ -140,7 +140,7 @@ let client vmid p connections_remaining =
     if n = p then [] else (loop n) :: (threads (n+1)) in
   Lwt.join (threads 0)
 
-let main c p i v =
+let main c p i v l =
   debug_print := v;
   match c with
   | None ->
@@ -150,7 +150,7 @@ let main c p i v =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Id vmid) p i);
+      Lwt_main.run (client (Hvsock.Id vmid) p i l);
       `Ok ()
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -172,6 +172,9 @@ let i =
 let v =
   Arg.(value & flag & info [ "v"; "verbose" ] ~doc:"Enable verbose debug")
 
+let l =
+  Arg.(value & opt int 65536 & info ~docv:"MAX DATA LENGTH" ~doc:"Maximum length of data" [ "l" ])
+
 let cmd =
   let doc = "Test AF_HVSOCK connections" in
   let man = [
@@ -181,7 +184,7 @@ let cmd =
     `P "To connect to a service in a remote partition:";
     `P "sock_stress -c hvsock://<vmid>";
   ] in
-  Term.(const main $ c $ p $ i $ v),
+  Term.(const main $ c $ p $ i $ v $ l),
   Term.info "sock_stress" ~version:"%0.1" ~doc ~exits:Term.default_exits ~man
 
 let () =
