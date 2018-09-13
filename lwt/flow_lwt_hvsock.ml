@@ -285,15 +285,10 @@ let close t =
     Lwt.return ()
 
 let shutdown_read t =
-  (* When we shutdown_read we don't care about any buffered data. *)
-  Log.warn (fun f -> f "FLOW.shutdown_read called");
-  match t.shutdown_read || t.closed with
-  | true ->
-    Lwt.return_unit
-  | false ->
-    Log.debug (fun f -> f "shutdown_read <- true");
-    t.shutdown_read <- true;
-    Hvsock.shutdown_read t.fd
+  (* We don't care about shutdown_read. We care about shutdown_write because
+     we want to send an EOF to the remote and still receive a response. *)
+  Log.warn (fun f -> f "FLOW.shutdown_read called and ignored");
+  Lwt.return_unit
 
 let shutdown_write t =
   (* When we shutdown_write we still expect buffered data to be flushed. *)
