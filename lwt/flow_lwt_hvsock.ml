@@ -112,7 +112,6 @@ type flow = {
   mutable read_buffers_len: int;
   read_buffers_m: Mutex.t;
   read_buffers_c: Condition.t;
-  mutable read_error: bool;
   read_histogram: Histogram.t;
   mutable write_buffers: Cstruct.t list;
   mutable write_buffers_len: int;
@@ -124,6 +123,7 @@ type flow = {
   write_histogram: Histogram.t;
   mutable closed: bool;
   mutable shutdown_read: bool;
+  mutable read_thread_exit: bool;
   mutable shutdown_write: bool;
   mutable shutdown_write_complete: bool;
   mutable write_error: bool;
@@ -147,7 +147,6 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
   let read_buffers_m = Mutex.create () in
   let read_buffers_c = Condition.create () in
   let read_histogram = Histogram.create () in
-  let read_error = false in
   let write_buffers = [] in
   let write_buffers_len = 0 in
   let write_buffers_m = Mutex.create () in
@@ -158,13 +157,14 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
   let write_histogram = Histogram.create () in
   let closed = false in
   let shutdown_read = false in
+  let read_thread_exit = false in
   let shutdown_write = false in
   let shutdown_write_complete = false in
   let write_error = false in
 
   let t = { fd; read_buffers_max; read_max; read_buffers; read_buffers_len;
-    read_buffers_m; read_buffers_c; read_error; write_buffers; write_buffers_len;
-    write_buffers_m; write_buffers_c; closed; shutdown_read;
+    read_buffers_m; read_buffers_c; write_buffers; write_buffers_len;
+    write_buffers_m; write_buffers_c; closed; shutdown_read; read_thread_exit;
     shutdown_write; shutdown_write_complete;
     write_buffers_max; write_max; write_flushed; write_error;
     read_histogram; write_histogram } in
@@ -257,9 +257,9 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       done
     with e ->
       Log.err (fun f -> f "Flow read_thread caught: %s" (Printexc.to_string e));
-      debug "read_thread read_error <- true";
+      debug "read_thread read_thread_exit <- true";
       Mutex.lock t.read_buffers_m;
-      t.read_error <- true;
+      t.read_thread_exit <- true;
       Condition.broadcast read_buffers_c;
       Mutex.unlock t.read_buffers_m
     in
@@ -322,17 +322,17 @@ let shutdown_write t =
     debug "shutdown_write";
     Hvsock.shutdown_write t.fd
 
-(* Block until either data is available or an error (which should manifest as EOF) *)
-let wait_for_data_or_error flow n =
+(* Block until either data is available or EOF *)
+let wait_for_data_or_eof flow n =
   Mutex.lock flow.read_buffers_m;
-  while flow.read_buffers_len < n && not flow.read_error do
+  while flow.read_buffers_len < n && not flow.read_thread_exit do
     Condition.wait flow.read_buffers_c flow.read_buffers_m;
   done;
   Mutex.unlock flow.read_buffers_m
 
 let read flow =
   (* On shutdown_read we drop buffered data. *)
-  if flow.closed || flow.shutdown_read || flow.read_error then Lwt.return (Ok `Eof)
+  if flow.closed || flow.shutdown_read then Lwt.return (Ok `Eof)
   else begin
     Mutex.lock flow.read_buffers_m;
     let take () =
@@ -343,11 +343,10 @@ let read flow =
         Condition.broadcast flow.read_buffers_c;
         `Data result
       | [] ->
-        (* Some read error means we now have an EOF *)
         `Eof in
     if flow.read_buffers = [] then begin
       Mutex.unlock flow.read_buffers_m;
-      detach (wait_for_data_or_error flow) 1 >|= fun () ->
+      detach (wait_for_data_or_eof flow) 1 >|= fun () ->
       (* Assume for now there's only one reader so no-one will steal the data *)
       Mutex.lock flow.read_buffers_m;
       let result = take () in
