@@ -104,8 +104,7 @@ let send_receive_verify i flow =
           failwith "Flow write error"
       end in
     loop n in
-  (* let n = Random.int (1024 * 1024) in *)
-  let n_written = 1024 in
+  let n_written = Random.int (1024 * 1024) in
   let writer_t = writer n_written in
   let reader_t = reader 0 in
   Lwt.join [ (reader_t >>= fun _ -> Lwt.return ()); writer_t ]
