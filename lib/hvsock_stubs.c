@@ -345,7 +345,7 @@ stub_hvsock_ba_sendv(value fd, value val_list)
   CAMLparam2(fd, val_list);
   CAMLlocal5(next, head, val_buf, val_ofs, val_len);
   SOCKET s = Socket_val(fd);
-  DWORD err = 0;
+  DWORD err;
   DWORD sent = 0;
   int ret = 0;
   int length = 0;
