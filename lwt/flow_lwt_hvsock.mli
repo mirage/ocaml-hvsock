@@ -20,7 +20,7 @@ module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN): sig
 
   type error = [ `Unix of Unix.error ]
 
-  include Mirage_flow_lwt.S with type error := error
+  include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
 
   module Hvsock: Lwt_hvsock.HVSOCK
 

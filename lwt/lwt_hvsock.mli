@@ -65,6 +65,12 @@ module type HVSOCK = sig
 
   val close: t -> unit Lwt.t
   (** [close t] closes a socket *)
+
+  val shutdown_read: t -> unit Lwt.t
+  (** [shutdown_read t] closes the read side of the socket *)
+
+  val shutdown_write: t -> unit Lwt.t
+  (** [shutdown_write t] closes the write side of the socket *)
 end
 
 module Make(Time: Mirage_time_lwt.S)(Fn: FN): HVSOCK
