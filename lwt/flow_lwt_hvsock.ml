@@ -263,7 +263,7 @@ let detach f x =
     (fun () -> Fn.destroy fn; Lwt.return_unit)
 
 let wait_write_flush t =
-  Log.info (fun f -> f "wait_write_flush");
+  Log.debug (fun f -> f "wait_write_flush");
   Mutex.lock t.write_buffers_m;
   while not t.write_flushed do
     Condition.wait t.write_buffers_c t.write_buffers_m
@@ -271,7 +271,7 @@ let wait_write_flush t =
   Mutex.unlock t.write_buffers_m
 
 let close t =
-  Log.warn (fun f -> f "FLOW.close called");
+  Log.debug (fun f -> f "FLOW.close called");
   match t.closed with
   | false ->
     Mutex.lock t.write_buffers_m;
@@ -287,12 +287,12 @@ let close t =
 let shutdown_read t =
   (* We don't care about shutdown_read. We care about shutdown_write because
      we want to send an EOF to the remote and still receive a response. *)
-  Log.warn (fun f -> f "FLOW.shutdown_read called and ignored");
+  Log.debug (fun f -> f "FLOW.shutdown_read called and ignored");
   Lwt.return_unit
 
 let shutdown_write t =
   (* When we shutdown_write we still expect buffered data to be flushed. *)
-  Log.warn (fun f -> f "FLOW.shutdown_write called");
+  Log.debug (fun f -> f "FLOW.shutdown_write called");
   match t.shutdown_write || t.closed with
   | true ->
     Lwt.return ()
