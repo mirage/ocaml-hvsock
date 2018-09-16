@@ -16,6 +16,11 @@ uninstall:
 clean:
 	jbuilder clean
 
+.PHONY: in-linux-container
+in-linux-container:
+	docker build -t hvsock .
+	docker run -v `pwd`:/src -it hvsock opam config exec -- sh
+
 REPO=../../mirage/opam-repository
 PACKAGES=$(REPO)/packages
 # until we have https://github.com/ocaml/opam-publish/issues/38
