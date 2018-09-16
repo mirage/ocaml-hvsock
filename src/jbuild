@@ -4,4 +4,4 @@
 
 (install
  ((section bin)
-  (files ((hvcat.exe as hvcat)))))
+  (files ((hvcat.exe as hvcat) (sock_stress.exe as sock_stress)))))
