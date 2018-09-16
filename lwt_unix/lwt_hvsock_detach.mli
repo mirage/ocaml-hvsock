@@ -15,4 +15,4 @@
  *
  *)
 
-include Lwt_hvsock.FN
+include Lwt_hvsock_s.FN

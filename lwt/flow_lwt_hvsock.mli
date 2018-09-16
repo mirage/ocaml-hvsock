@@ -16,13 +16,13 @@
  *
  *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN): sig
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN): sig
 
   type error = [ `Unix of Unix.error ]
 
   include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
 
-  module Hvsock: Lwt_hvsock.HVSOCK
+  module Hvsock: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.sockaddr
 
   val connect: ?message_size:int -> ?buffer_size: int -> Hvsock.t -> flow
   (** Construct a flow given a Hyper-V socket connection.

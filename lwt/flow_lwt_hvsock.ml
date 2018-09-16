@@ -88,7 +88,7 @@ module Histogram = struct
 
 end
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN) = struct
 
 module Blocking_hvsock = Hvsock
 module Hvsock = Lwt_hvsock.Make(Time)(Fn)

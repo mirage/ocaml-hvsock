@@ -56,23 +56,15 @@ type op = {
   buf: Cstruct.t;
 }
 
-module type FN = sig
-  type ('request, 'response) t
-
-  val create: ('request -> 'response) -> ('request, 'response) t
-  val destroy: ('request, 'response) t -> unit
-
-  val fn: ('request, 'response) t -> 'request -> 'response Lwt.t
-end
-
-
-module Make(Time: Mirage_time_lwt.S)(Fn: FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN) = struct
 
 type t = {
   mutable fd: Unix.file_descr option;
   read: (op, int) Fn.t;
   write: (op, int) Fn.t;
 }
+
+type sockaddr = Hvsock.sockaddr
 
 let make fd =
   let read = Fn.create (fun op -> cstruct_read op.file_descr op.buf) in

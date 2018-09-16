@@ -53,7 +53,7 @@ end
 
 open Lwt.Infix
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN) = struct
 
 module Hvsock = Lwt_hvsock.Make(Time)(Fn)
 
