@@ -31,10 +31,10 @@ end
 
 module type SOCKET = sig
   type t
-  (** A Hypervisor socket *)
+  (** A socket which supports I/O via Lwt *)
 
   type sockaddr
-  (** A Hypervisor socket address *)
+  (** A socket address *)
 
   val create: unit -> t
   (** [create ()] creates an unbound hypervisorsocket *)

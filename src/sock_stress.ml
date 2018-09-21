@@ -42,19 +42,19 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)
+module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock)
 
 let rec connect i vmid serviceid =
-  let fd = Hv.Hvsock.create () in
+  let fd = Hv.Socket.create () in
   Lwt.catch
     (fun () ->
-      Hv.Hvsock.connect fd { Hvsock.vmid; serviceid }
+      Hv.Socket.connect fd { Hvsock.vmid; serviceid }
       >>= fun () ->
       let flow = Hv.connect fd in
       Lwt.return flow
     ) (fun e ->
       debug "%d: connect raised %s: sleep 1s and retrying" i (Printexc.to_string e);
-      Hv.Hvsock.close fd
+      Hv.Socket.close fd
       >>= fun () ->
       Lwt_unix.sleep 1.
       >>= fun () ->

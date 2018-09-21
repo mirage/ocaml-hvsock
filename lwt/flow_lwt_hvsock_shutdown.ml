@@ -53,9 +53,9 @@ end
 
 open Lwt.Infix
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Socket_family.S) = struct
 
-module Hvsock = Lwt_hvsock.Make(Time)(Fn)
+module Socket = Lwt_hvsock.Make(Time)(Fn)(Socket_family)
 
 type 'a io = 'a Lwt.t
 
@@ -70,7 +70,7 @@ let pp_write_error ppf = function
   | #error as e -> pp_error ppf e
 
 type flow = {
-  fd: Hvsock.t;
+  fd: Socket.t;
   rlock: Lwt_mutex.t;
   wlock: Lwt_mutex.t;
   read_header_buffer: Cstruct.t;
@@ -101,7 +101,7 @@ let really_write fd buffer =
     if Cstruct.len remaining = 0
     then Lwt.return `Done
     else
-      Hvsock.write fd remaining >>= function
+      Socket.write fd remaining >>= function
       | 0 -> Lwt.return `Eof
       | n ->
         loop (Cstruct.shift remaining n) in
@@ -114,7 +114,7 @@ let really_write fd buffer =
       | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
         Lwt.return `Eof
       | e ->
-        Log.err (fun f -> f "Hvsock.write: %s" (Printexc.to_string e));
+        Log.err (fun f -> f "Socket.write: %s" (Printexc.to_string e));
         Lwt.return `Eof
     )
 
@@ -124,7 +124,7 @@ let really_read fd buffer =
     if Cstruct.len remaining = 0
     then Lwt.return `Done
     else
-      Hvsock.read fd remaining >>= function
+      Socket.read fd remaining >>= function
       | 0 -> Lwt.return `Eof
       | n -> loop (Cstruct.shift remaining n)
   in
@@ -137,7 +137,7 @@ let really_read fd buffer =
       | Unix.Unix_error(Unix.ECONNRESET, _, _) ->
         Lwt.return `Eof
       | e ->
-        Log.err (fun f -> f "Hvsock.read: %s" (Printexc.to_string e));
+        Log.err (fun f -> f "Socket.read: %s" (Printexc.to_string e));
         Lwt.return `Eof
     )
 
@@ -152,7 +152,7 @@ let shutdown_write flow =
         really_write flow.fd flow.write_header_buffer >>= function
         | `Done -> Lwt.return ()
         | `Eof  ->
-          Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
+          Log.err (fun f -> f "Socket.shutdown_write: got Eof");
           Lwt.return ()
       )
   end
@@ -168,7 +168,7 @@ let shutdown_read flow =
         really_write flow.fd flow.write_header_buffer >>= function
         | `Done -> Lwt.return ()
         | `Eof  ->
-          Log.err (fun f -> f "Hvsock.shutdown_write: got Eof");
+          Log.err (fun f -> f "Socket.shutdown_write: got Eof");
           Lwt.return ()
       )
   end
@@ -210,7 +210,7 @@ let close flow =
               wait_for_close ()
           )
       ) (fun () ->
-        Hvsock.close flow.fd
+        Socket.close flow.fd
       )
   | true ->
     Lwt.return ()

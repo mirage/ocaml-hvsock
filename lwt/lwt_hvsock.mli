@@ -17,8 +17,17 @@
 
 open Hvsock
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN):
+module Make
+  (Time: Mirage_time_lwt.S)
+  (Fn: Lwt_hvsock_s.FN)
+  (Socket_family: Socket_family.S):
   Lwt_hvsock_s.SOCKET
-    with type sockaddr = Hvsock.sockaddr
-(** Create an HVSOCK implementation given the ability to run blocking
-    functions outside of Lwt. *)
+    with type sockaddr = Socket_family.sockaddr
+(** Create a Lwt socket from a
+    - source of timing
+    - a means of running blocking calls in full threads
+    - a means of creating sockets
+
+    This is useful because some of the hypervisor sockets do not support
+    select() or other methods of asynchronous I/O and we must therefore
+    run the calls in background threads. *)

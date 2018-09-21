@@ -19,8 +19,8 @@ type error = [`Unix of Unix.error]
 
 include Mirage_flow_lwt.S with type error := error
 
- module Hvsock: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.sockaddr
+ module Socket: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.sockaddr
 
- val connect: ?message_size:int -> ?buffer_size:int -> Hvsock.t -> flow
+ val connect: ?message_size:int -> ?buffer_size:int -> Socket.t -> flow
 
  val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t

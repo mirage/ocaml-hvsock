@@ -16,15 +16,15 @@
  *
  *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN): sig
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Socket_family.S): sig
 
   type error = [ `Unix of Unix.error ]
 
   include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
 
-  module Hvsock: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.sockaddr
+  module Socket: Lwt_hvsock_s.SOCKET with type sockaddr = Socket_family.sockaddr
 
-  val connect: ?message_size:int -> ?buffer_size: int -> Hvsock.t -> flow
+  val connect: ?message_size:int -> ?buffer_size: int -> Socket.t -> flow
   (** Construct a flow given a Hyper-V socket connection.
       ?message_size allows the maximum send/recv size to be limited.
       ?buffer_size controls how much buffering is placed over the socket.

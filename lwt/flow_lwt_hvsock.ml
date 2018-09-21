@@ -88,10 +88,10 @@ module Histogram = struct
 
 end
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Socket_family.S) = struct
 
-module Blocking_hvsock = Hvsock
-module Hvsock = Lwt_hvsock.Make(Time)(Fn)
+module Blocking_socket = Socket_family
+module Socket = Lwt_hvsock.Make(Time)(Fn)(Socket_family)
 
 type 'a io = 'a Lwt.t
 
@@ -105,7 +105,7 @@ let pp_write_error ppf = function
   |#error as e -> pp_error ppf e
 
 type flow = {
-  fd: Hvsock.t;
+  fd: Socket.t;
   read_buffers_max: int;
   read_max: int;
   mutable read_buffers: Cstruct.t list;
@@ -161,7 +161,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
 
 
   let write_thread () =
-    let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
+    let fd = match Socket.to_fd fd with Some x -> x | None -> assert false in
     let get_buffers () =
       Mutex.lock write_buffers_m;
       while t.write_buffers = [] && not t.shutdown_write do
@@ -208,7 +208,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
     in
   let _ = Thread.create write_thread () in
   let read_thread () =
-    let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
+    let fd = match Socket.to_fd fd with Some x -> x | None -> assert false in
     let get_buffer () =
       Mutex.lock t.read_buffers_m;
       while t.read_buffers_len = t.read_buffers_max do
@@ -280,7 +280,7 @@ let close t =
     Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
     >>= fun () ->
-    Hvsock.close t.fd
+    Socket.close t.fd
   | true ->
     Lwt.return ()
 
@@ -305,7 +305,7 @@ let shutdown_write t =
     detach wait_write_flush t
     >>= fun () ->
     Log.debug (fun f -> f "shutdown_write");
-    Hvsock.shutdown_write t.fd
+    Socket.shutdown_write t.fd
 
 (* Block until either data is available or EOF *)
 let wait_for_data_or_eof flow n =

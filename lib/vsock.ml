@@ -71,5 +71,5 @@ let accept fd =
   let new_fd, cid, port = do_accept fd in
   new_fd, { cid = cid_of_int32 cid; port }
 
-let connect fd { cid; port } = do_connect fd (int32_of_cid cid) port
+let connect ?timeout_ms:_ fd { cid; port } = do_connect fd (int32_of_cid cid) port
 

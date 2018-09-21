@@ -15,7 +15,6 @@
  *
  *)
 
-open Hvsock
 open Lwt.Infix
 
 (* Workarounds:
@@ -27,21 +26,6 @@ open Lwt.Infix
       server is down when the client calls connect. We declare a 1s timeout
       and raise ECONNREFUSED ourselves.
 *)
-
-module type HVSOCK = sig
-  type t
-  val create: unit -> t
-  val to_fd: t -> Unix.file_descr option
-  val bind: t -> sockaddr -> unit
-  val listen: t -> int -> unit
-  val accept: t -> (t * sockaddr) Lwt.t
-  val connect: ?timeout_ms:int -> t -> sockaddr -> unit Lwt.t
-  val read: t -> Cstruct.t -> int Lwt.t
-  val write: t -> Cstruct.t -> int Lwt.t
-  val close: t -> unit Lwt.t
-  val shutdown_read: t -> unit Lwt.t
-  val shutdown_write: t -> unit Lwt.t
-end
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
 
@@ -56,7 +40,7 @@ type op = {
   buf: Cstruct.t;
 }
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Socket_family.S) = struct
 
 type t = {
   mutable fd: Unix.file_descr option;
@@ -64,14 +48,14 @@ type t = {
   write: (op, int) Fn.t;
 }
 
-type sockaddr = Hvsock.sockaddr
+type sockaddr = Socket_family.sockaddr
 
 let make fd =
   let read = Fn.create (fun op -> cstruct_read op.file_descr op.buf) in
   let write = Fn.create (fun op -> cstruct_write op.file_descr op.buf) in
   { fd = Some fd; read; write; }
 
-let create () = make (create ())
+let create () = make (Socket_family.create ())
 
 let to_fd t = t.fd
 
@@ -101,7 +85,7 @@ let shutdown_write t = match t with
 
 let bind t addr = match t with
   | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
-  | { fd = Some x; _ } -> bind x addr
+  | { fd = Some x; _ } -> Socket_family.bind x addr
 
 let listen t n = match t with
   | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
@@ -110,14 +94,14 @@ let listen t n = match t with
 let accept = function
   | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))
   | { fd = Some x; _ } ->
-    detach accept x
+    detach Socket_family.accept x
     >>= fun (y, addr) ->
     Lwt.return (make y, addr)
 
 let connect ?timeout_ms t addr = match t with
   | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "connect", ""))
   | { fd = Some x; _ } ->
-    detach (connect ?timeout_ms x) addr
+    detach (Socket_family.connect ?timeout_ms x) addr
 
 let read t buf = match t with
   | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "read", ""))

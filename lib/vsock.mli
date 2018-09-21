@@ -35,16 +35,7 @@ type sockaddr = {
 }
 (** An AF_VSOCK socket address *)
 
+include Socket_family.S
+  with type sockaddr := sockaddr
+
 val string_of_sockaddr: sockaddr -> string
-
-val create: unit -> Unix.file_descr
-(** [create ()] creates an unbound AF_VSOCK socket *)
-
-val bind: Unix.file_descr -> sockaddr -> unit
-(** [bind socket sockaddr] binds [socket] to [sockaddr] *)
-
-val accept: Unix.file_descr -> Unix.file_descr * sockaddr
-(** [accept fd] accepts a single connection *)
-
-val connect: Unix.file_descr -> sockaddr -> unit
-(** [connect fd sockaddr] connects to a remote context. *)
