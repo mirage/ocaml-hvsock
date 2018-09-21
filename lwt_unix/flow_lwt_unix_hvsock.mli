@@ -19,7 +19,7 @@ type error = [`Unix of Unix.error]
 
 include Mirage_flow_lwt.S with type error := error
 
- module Socket: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.Af_hvsock.sockaddr
+ module Socket: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
 
  val connect: ?message_size:int -> ?buffer_size:int -> Socket.t -> flow
 

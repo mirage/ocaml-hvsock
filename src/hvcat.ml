@@ -60,7 +60,7 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hvsock)
+module Hv = Lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hyperv)
 
 let make_channels t =
   let read_buffer = Cstruct.create buffer_size in
@@ -81,7 +81,7 @@ let rec connect vmid serviceid =
   let fd = Hv.create () in
   Lwt.catch
     (fun () ->
-      Hv.connect fd { Hvsock.Af_hvsock.vmid; serviceid }
+      Hv.connect fd { Hvsock.Af_hyperv.vmid; serviceid }
       >>= fun () ->
       Lwt.return fd
     ) (fun e ->
@@ -109,11 +109,11 @@ let client vmid serviceid =
 
 let one_shot_server vmid serviceid =
   let s = Hv.create () in
-  Hv.bind s { Hvsock.Af_hvsock.vmid; serviceid };
+  Hv.bind s { Hvsock.Af_hyperv.vmid; serviceid };
   Hv.listen s 1;
   Hv.accept s
-  >>= fun (client, { Hvsock.Af_hvsock.vmid; serviceid }) ->
-  Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.Af_hvsock.string_of_vmid vmid) serviceid;
+  >>= fun (client, { Hvsock.Af_hyperv.vmid; serviceid }) ->
+  Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.Af_hyperv.string_of_vmid vmid) serviceid;
   let ic, oc = make_channels client in
   proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
   >>= fun () ->
@@ -123,12 +123,12 @@ let one_shot_server vmid serviceid =
 
 let echo_server vmid serviceid =
   let s = Hv.create () in
-  Hv.bind s { Hvsock.Af_hvsock.vmid; serviceid };
+  Hv.bind s { Hvsock.Af_hyperv.vmid; serviceid };
   Hv.listen s 5;
   let rec loop () =
     Hv.accept s
-    >>= fun (fd, { Hvsock.Af_hvsock.vmid; serviceid }) ->
-    Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.Af_hvsock.string_of_vmid vmid) serviceid;
+    >>= fun (fd, { Hvsock.Af_hyperv.vmid; serviceid }) ->
+    Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.Af_hyperv.string_of_vmid vmid) serviceid;
     Lwt.async (fun () ->
       let ic, oc = make_channels fd in
       proxy buffer_size (ic, oc) (ic, oc)
@@ -145,9 +145,9 @@ let echo_server vmid serviceid =
 
 let main listen echo vmid serviceid =
   let vmid = match vmid with
-    | None -> Hvsock.Af_hvsock.Wildcard
-    | Some x -> Hvsock.Af_hvsock.Id x in
-  Printf.fprintf stderr "listen=%b echo=%b vmid=%s serviceid=%s\n%!" listen echo (Hvsock.Af_hvsock.string_of_vmid vmid) serviceid;
+    | None -> Hvsock.Af_hyperv.Wildcard
+    | Some x -> Hvsock.Af_hyperv.Id x in
+  Printf.fprintf stderr "listen=%b echo=%b vmid=%s serviceid=%s\n%!" listen echo (Hvsock.Af_hyperv.string_of_vmid vmid) serviceid;
   let t = match listen, echo with
     | true, false -> one_shot_server vmid serviceid
     | true, true -> echo_server vmid serviceid

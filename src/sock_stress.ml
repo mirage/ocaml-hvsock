@@ -42,13 +42,13 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hvsock)
+module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hyperv)
 
 let rec connect i vmid serviceid =
   let fd = Hv.Socket.create () in
   Lwt.catch
     (fun () ->
-      Hv.Socket.connect fd { Hvsock.Af_hvsock.vmid; serviceid }
+      Hv.Socket.connect fd { Hvsock.Af_hyperv.vmid; serviceid }
       >>= fun () ->
       let flow = Hv.connect fd in
       Lwt.return flow
@@ -150,7 +150,7 @@ let main c p i v l =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Af_hvsock.Id vmid) p i l);
+      Lwt_main.run (client (Hvsock.Af_hyperv.Id vmid) p i l);
       `Ok ()
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
@@ -176,7 +176,7 @@ let l =
   Arg.(value & opt int 65536 & info ~docv:"MAX DATA LENGTH" ~doc:"Maximum length of data" [ "l" ])
 
 let cmd =
-  let doc = "Test AF_HVSOCK connections" in
+  let doc = "Test AF_HYPERV connections" in
   let man = [
     `S "DESCRIPTION";
     `P "Establish a connection to an echo server via a Hyper-V socket, send random data, receive a response and check the data is the same. ";
