@@ -21,7 +21,7 @@
     https://github.com/rneugeba/virtsock/tree/master/go/hvsock
 *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Socket_family.S): sig
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Hvsock.Socket_family.S): sig
 
   type error = [ `Unix of Unix.error ]
 

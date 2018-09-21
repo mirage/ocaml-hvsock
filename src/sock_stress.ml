@@ -42,13 +42,13 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock)
+module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hvsock)
 
 let rec connect i vmid serviceid =
   let fd = Hv.Socket.create () in
   Lwt.catch
     (fun () ->
-      Hv.Socket.connect fd { Hvsock.vmid; serviceid }
+      Hv.Socket.connect fd { Hvsock.Af_hvsock.vmid; serviceid }
       >>= fun () ->
       let flow = Hv.connect fd in
       Lwt.return flow
@@ -150,7 +150,7 @@ let main c p i v l =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Id vmid) p i l);
+      Lwt_main.run (client (Hvsock.Af_hvsock.Id vmid) p i l);
       `Ok ()
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";

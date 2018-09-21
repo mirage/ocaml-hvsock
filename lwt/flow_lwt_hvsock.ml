@@ -88,7 +88,7 @@ module Histogram = struct
 
 end
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Socket_family.S) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Hvsock.Socket_family.S) = struct
 
 module Blocking_socket = Socket_family
 module Socket = Lwt_hvsock.Make(Time)(Fn)(Socket_family)

@@ -20,7 +20,7 @@ open Hvsock
 module Make
   (Time: Mirage_time_lwt.S)
   (Fn: Lwt_hvsock_s.FN)
-  (Socket_family: Socket_family.S):
+  (Socket_family: Hvsock.Socket_family.S):
   Lwt_hvsock_s.SOCKET
     with type sockaddr = Socket_family.sockaddr
 (** Create a Lwt socket from a
