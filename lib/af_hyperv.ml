@@ -22,9 +22,11 @@ type vmid =
   | Parent
   | Id of string
 
+type serviceid = string
+
 type sockaddr = {
   vmid: vmid;
-  serviceid: string;
+  serviceid: serviceid;
 }
 
 external get_wildcard: unit -> string = "stub_hvsock_wildcard"

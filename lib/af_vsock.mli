@@ -15,6 +15,8 @@
  *
  *)
 
+(** Low-level interface to the AF_VSOCK socket family available on Linux kernels. *)
+
 type port = int32
 
 type cid =
@@ -35,7 +37,7 @@ type sockaddr = {
 }
 (** An AF_VSOCK socket address *)
 
-include Socket_family.S
+include Af_common.S
   with type sockaddr := sockaddr
 
 val string_of_sockaddr: sockaddr -> string

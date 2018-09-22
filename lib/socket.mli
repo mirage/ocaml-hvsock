@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2016 Docker Inc
+ * Copyright (C) 2018 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,25 +15,27 @@
  *
  *)
 
-(** Low-level interface to the AF_HYPERV socket family available on Windows kernels. *)
+(** An interface for hypervisor sockets which hides as many of the differences
+    between Linux and Windows as possible. *)
 
+exception Unsupported_platform of string
+(** An operation cannot be performed on this platform *)
 
-type vmid =
-  | Wildcard      (** Any partition *)
-  | Children      (** Any child partition *)
-  | Loopback      (** The same partition *)
-  | Parent        (** The parent partition *)
-  | Id of string  (** A specific VM id *)
+type port =
+  | Port of Af_vsock.port
+  | Serviceid of Af_hyperv.serviceid
+(** a port is where a service in a remote VM is bound *)
 
-val string_of_vmid: vmid -> string
+type peer =
+  | Any
+  | Host
+  | CID of Af_vsock.cid
+  | VMID of Af_hyperv.vmid
+(** peer describes who we're talking to: either a remote VM or the host itself.
+    Note there is no cross-platform way to describe a VM since a AF_VSOCK cid
+    is completely different to an AF_HYPERV vmid. *)
 
-type serviceid = string
-
-type sockaddr = {
-  vmid: vmid;           (** identifies a partition *)
-  serviceid: serviceid; (** identifies a service *)
-}
-(** An AF_HVSOCK socket address *)
+type sockaddr = peer * port
 
 include Af_common.S
   with type sockaddr := sockaddr
