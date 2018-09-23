@@ -36,6 +36,8 @@ module type SOCKET = sig
   type sockaddr
   (** A socket address *)
 
+  val string_of_sockaddr: sockaddr -> string
+
   val create: unit -> t
   (** [create ()] creates an unbound hypervisorsocket *)
 

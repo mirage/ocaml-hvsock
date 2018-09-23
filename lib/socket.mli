@@ -37,5 +37,12 @@ type peer =
 
 type sockaddr = peer * port
 
+val sockaddr_of_uri: Uri.t -> sockaddr
+(** Parse a URI as a socket address. This currently supports
+    - vsock://:80
+    - hvsock://<vmid>/3049197C-9A4E-4FBF-9367-97F792F16994
+    - hvsock://2:80/
+*)
+
 include Af_common.S
   with type sockaddr := sockaddr

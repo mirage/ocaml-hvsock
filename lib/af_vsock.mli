@@ -39,5 +39,3 @@ type sockaddr = {
 
 include Af_common.S
   with type sockaddr := sockaddr
-
-val string_of_sockaddr: sockaddr -> string

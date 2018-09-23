@@ -50,6 +50,8 @@ type t = {
 
 type sockaddr = Socket_family.sockaddr
 
+let string_of_sockaddr = Socket_family.string_of_sockaddr
+
 let make fd =
   let read = Fn.create (fun op -> cstruct_read op.file_descr op.buf) in
   let write = Fn.create (fun op -> cstruct_write op.file_descr op.buf) in

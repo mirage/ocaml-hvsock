@@ -29,6 +29,15 @@ type sockaddr = {
   serviceid: serviceid;
 }
 
+let string_of_sockaddr { vmid; serviceid } =
+  let vmid = match vmid with
+    | Wildcard -> "Wildcard"
+    | Children -> "Children"
+    | Loopback -> "Loopback"
+    | Parent   -> "Parent"
+    | Id x     -> x in
+  Printf.sprintf "AF_HYPERV { vmid = %s; serviceid = %s }" vmid serviceid
+
 external get_wildcard: unit -> string = "stub_hvsock_wildcard"
 let wildcard = get_wildcard ()
 

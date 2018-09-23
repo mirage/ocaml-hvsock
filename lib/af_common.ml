@@ -5,6 +5,8 @@ module type S = sig
   type sockaddr
   (** A socket address *)
 
+  val string_of_sockaddr: sockaddr -> string
+
   val create: unit -> Unix.file_descr
   (** [create ()] creates an unbound socket *)
 

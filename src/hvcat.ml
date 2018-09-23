@@ -44,11 +44,8 @@ let listen =
   let doc = "Act as a server rather than a client." in
   Arg.(value & flag & info [ "l"; "listen"] ~doc)
 
-let vmid =
-  Arg.(value & opt (some string) None & info ~docv:"VMID" ~doc:"Identifier of VM/partition" [ "vmid" ])
-
-let serviceid =
-  Arg.(value & pos 0 string "3049197C-9A4E-4FBF-9367-97F792F16994" & info ~docv:"SERVICEID" ~doc:"Identifier of service" [])
+let uri =
+  Arg.(value & pos 0 string "vsock://:80" & info ~docv:"URI" ~doc:"URI of service" [])
 
 let echo =
   let doc = "Run a simple multithreaded echo server" in
@@ -60,7 +57,7 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hyperv)
+module Hv = Lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Socket)
 
 let make_channels t =
   let read_buffer = Cstruct.create buffer_size in
@@ -77,11 +74,11 @@ let make_channels t =
   let oc = Lwt_io.make ~buffer:(Lwt_bytes.create buffer_size) ~mode:Lwt_io.output write in
   ic, oc
 
-let rec connect vmid serviceid =
+let rec connect sockaddr =
   let fd = Hv.create () in
   Lwt.catch
     (fun () ->
-      Hv.connect fd { Hvsock.Af_hyperv.vmid; serviceid }
+      Hv.connect fd sockaddr
       >>= fun () ->
       Lwt.return fd
     ) (fun e ->
@@ -90,12 +87,12 @@ let rec connect vmid serviceid =
       >>= fun () ->
       Lwt_unix.sleep 1.
       >>= fun () ->
-      connect vmid serviceid
+      connect sockaddr
     )
 
-let client vmid serviceid =
+let client sockaddr =
   try
-    connect vmid serviceid
+    connect sockaddr
     >>= fun fd ->
     Printf.fprintf stderr "Connected\n%!";
     let ic, oc = make_channels fd in
@@ -107,13 +104,13 @@ let client vmid serviceid =
     Printf.fprintf stderr "Server not found (ENOENT)\n";
     Lwt.return ()
 
-let one_shot_server vmid serviceid =
+let one_shot_server sockaddr =
   let s = Hv.create () in
-  Hv.bind s { Hvsock.Af_hyperv.vmid; serviceid };
+  Hv.bind s sockaddr;
   Hv.listen s 1;
   Hv.accept s
-  >>= fun (client, { Hvsock.Af_hyperv.vmid; serviceid }) ->
-  Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.Af_hyperv.string_of_vmid vmid) serviceid;
+  >>= fun (client, sockaddr) ->
+  Printf.fprintf stderr "Connection from %s\n%!" (Hv.string_of_sockaddr sockaddr);
   let ic, oc = make_channels client in
   proxy buffer_size (ic, oc) (Lwt_io.stdin, Lwt_io.stdout)
   >>= fun () ->
@@ -121,14 +118,14 @@ let one_shot_server vmid serviceid =
   >>= fun () ->
   Hv.close s
 
-let echo_server vmid serviceid =
+let echo_server sockaddr =
   let s = Hv.create () in
-  Hv.bind s { Hvsock.Af_hyperv.vmid; serviceid };
+  Hv.bind s sockaddr;
   Hv.listen s 5;
   let rec loop () =
     Hv.accept s
-    >>= fun (fd, { Hvsock.Af_hyperv.vmid; serviceid }) ->
-    Printf.fprintf stderr "Connection from %s:%s\n%!" (Hvsock.Af_hyperv.string_of_vmid vmid) serviceid;
+    >>= fun (fd, sockaddr) ->
+    Printf.fprintf stderr "Connection from %s\n%!" (Hv.string_of_sockaddr sockaddr);
     Lwt.async (fun () ->
       let ic, oc = make_channels fd in
       proxy buffer_size (ic, oc) (ic, oc)
@@ -143,29 +140,31 @@ let echo_server vmid serviceid =
   >>= fun () ->
   Hv.close s
 
-let main listen echo vmid serviceid =
-  let vmid = match vmid with
-    | None -> Hvsock.Af_hyperv.Wildcard
-    | Some x -> Hvsock.Af_hyperv.Id x in
-  Printf.fprintf stderr "listen=%b echo=%b vmid=%s serviceid=%s\n%!" listen echo (Hvsock.Af_hyperv.string_of_vmid vmid) serviceid;
+let main listen echo uri =
+  let sockaddr = Hvsock.Socket.sockaddr_of_uri (Uri.of_string uri) in
+  Printf.fprintf stderr "listen=%b echo=%b sockaddr=%s\n%!" listen echo (Hvsock.Socket.string_of_sockaddr sockaddr);
   let t = match listen, echo with
-    | true, false -> one_shot_server vmid serviceid
-    | true, true -> echo_server vmid serviceid
-    | false, _ -> client vmid serviceid in
+    | true, false -> one_shot_server sockaddr
+    | true, true -> echo_server sockaddr
+    | false, _ -> client sockaddr in
   Lwt_main.run t
 
 let cmd =
-  let doc = "Establish Hyper-V socket connections" in
+  let doc = "Establish hypervisor socket connections" in
   let man = [
     `S "DESCRIPTION";
-    `P "Establish a connection to a server via a Hyper-V socket and transfer data over stdin/stdout, in a similar way to 'nc'";
+    `P "Establish a connection to a server via a hypervisor socket and transfer data over stdin/stdout, in a similar way to 'nc'";
     `S "EXAMPLES";
-    `P "To listen for an incoming connection from anywhere:";
-    `P "hvcat -l 3049197C-9A4E-4FBF-9367-97F792F16994";
-    `P "To connect to a service in a remote partition:";
-    `P "hvcat <vmid> 3049197C-9A4E-4FBF-9367-97F792F16994";
+    `P "To listen for an incoming Hyper-V connection from anywhere on a given serviceid (Windows only):";
+    `P "hvcat -l hvsock:///3049197C-9A4E-4FBF-9367-97F792F16994";
+    `P "To listen for an incoming connection from anywhere to AF_VSOCK port 80 (or the corresponding AF_HYPERV port):";
+    `P "hvcat -l vsock://:80";
+    `P "To connect to a service in a remote partition on Windows:";
+    `P "hvcat hvsock://<vmid>/3049197C-9A4E-4FBF-9367-97F792F16994";
+    `P "To connect to a service in a VM on Linux:";
+    `P "hvcat hvsock://2:80/";
   ] in
-  Term.(pure main $ listen $ echo $ vmid $ serviceid),
+  Term.(pure main $ listen $ echo $ uri),
   Term.info "hvcat" ~version:"0.1" ~doc ~man
 
 let () =

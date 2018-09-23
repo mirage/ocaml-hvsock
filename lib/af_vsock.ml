@@ -53,7 +53,7 @@ type sockaddr = {
 }
 
 let string_of_sockaddr { cid; port } =
-  Printf.sprintf "{ cid = %s; port = %lx }" (string_of_cid cid) port
+  Printf.sprintf "AF_VSOCK { cid = %s; port = %lx }" (string_of_cid cid) port
 
 external do_socket: unit -> Unix.file_descr = "stub_vsock_socket"
 

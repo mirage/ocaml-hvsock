@@ -82,6 +82,33 @@ type peer =
   | VMID of Af_hyperv.vmid
 
 type sockaddr = peer * port
+
+let string_of_sockaddr (peer, port) =
+  let string_of_peer = function
+    | Any    -> "Any"
+    | Host   -> "Host"
+    | CID x  -> Printf.sprintf "CID %s" (Af_vsock.string_of_cid x)
+    | VMID x -> Printf.sprintf "VMID %s" (Af_hyperv.string_of_vmid x) in
+  let string_of_port = function
+    | Port x      -> Int32.to_string x
+    | Serviceid x -> x in
+  Printf.sprintf "Socket { peer = %s; port = %s }" (string_of_peer peer) (string_of_port port)
+
+let sockaddr_of_uri uri =
+  let strip_slash x =
+    if x = ""
+    then ""
+    else
+      if x.[0] = '/'
+      then String.sub x 1 (String.length x - 1)
+      else x in
+match Uri.scheme uri, Uri.host uri, Uri.port uri, Uri.path uri with
+  | Some "vsock", Some "", Some port, _ -> Any, Port (Int32.of_int port)
+  | Some "vsock", Some cid, Some port, _ -> CID (Af_vsock.Id (Int32.of_string cid)), Port (Int32.of_int port)
+  | Some "hvsock", Some "", _, serviceid -> Any, Serviceid (strip_slash serviceid)
+  | Some "hvsock", Some vmid, _, serviceid -> VMID (Af_hyperv.Id vmid), Serviceid (strip_slash serviceid)
+  | _, _, _, _ -> invalid_arg "sockaddr_of_uri"
+
 let vmid_of_peer = function
   | Any -> Af_hyperv.Wildcard
   | Host -> Af_hyperv.Parent
