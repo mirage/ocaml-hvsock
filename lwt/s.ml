@@ -29,6 +29,19 @@ module type FN = sig
 
 end
 
+module type RW = sig
+    (** Read and write *)
+
+    type t
+    (** A thing which behaves like a file descriptor *)
+
+    val writev: t -> Cstruct.t list -> int
+    (** Write a list of buffers *)
+
+    val read_into: t -> Cstruct.t -> int
+    (** Read into a buffer, returning the number of bytes written *)
+end
+
 module type SOCKET = sig
   type t
   (** A socket which supports I/O via Lwt *)
