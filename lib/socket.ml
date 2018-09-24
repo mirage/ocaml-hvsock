@@ -166,3 +166,6 @@ let connect ?timeout_ms fd sockaddr = match platform, sockaddr with
     let port = port_of_port port in
     Hyperkit.connect ?timeout_ms fd Hyperkit.({hyperkit_path = path; port = port})
   | Unsupported x, _ -> raise (Unsupported_platform x)
+
+let read_into = Af_common.read_into
+let writev = Af_common.writev

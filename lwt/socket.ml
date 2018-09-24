@@ -27,14 +27,6 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
-type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
-external stub_ba_send: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_send"
-
-let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
-let cstruct_write fd b = stub_ba_send fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
-
 type op = {
   file_descr: Unix.file_descr;
   buf: Cstruct.t;
@@ -53,8 +45,8 @@ type sockaddr = Socket_family.sockaddr
 let string_of_sockaddr = Socket_family.string_of_sockaddr
 
 let make fd =
-  let read = Fn.create (fun op -> cstruct_read op.file_descr op.buf) in
-  let write = Fn.create (fun op -> cstruct_write op.file_descr op.buf) in
+  let read = Fn.create (fun op -> Socket_family.read_into op.file_descr op.buf) in
+  let write = Fn.create (fun op -> Socket_family.writev op.file_descr [ op.buf ]) in
   { fd = Some fd; read; write; }
 
 let create () = make (Socket_family.create ())

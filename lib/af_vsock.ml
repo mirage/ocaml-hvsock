@@ -73,3 +73,5 @@ let accept fd =
 
 let connect ?timeout_ms:_ fd { cid; port } = do_connect fd (int32_of_cid cid) port
 
+let read_into = Af_common.read_into
+let writev = Af_common.writev

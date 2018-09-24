@@ -47,3 +47,6 @@ let accept fd =
   let new_fd, _unix_sockaddr = Unix.accept fd in
   (* We don't know the remote AF_VSOCK sockaddr *)
   new_fd, { hyperkit_path = "<unknown hyperkit>"; port = -1l }
+
+let read_into = Af_common.read_into
+let writev = Af_common.writev

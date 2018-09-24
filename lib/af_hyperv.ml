@@ -86,3 +86,6 @@ let connect ?timeout_ms fd { vmid; serviceid } =
   ( match timeout_ms with
     | None -> do_connect_blocking
     | Some t -> do_connect_nonblocking t ) fd (string_of_vmid vmid) serviceid
+
+let read_into = Af_common.read_into
+let writev = Af_common.writev

@@ -25,26 +25,11 @@ let src =
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-external stub_ba_sendv: Unix.file_descr -> (buffer * int * int) list -> int = "stub_hvsock_ba_sendv"
-external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
-
-module RW = struct
-  type t = Unix.file_descr
-
-  let writev fd bs =
-    let bs' = List.map (fun b -> b.Cstruct.buffer, b.Cstruct.off, b.Cstruct.len) bs in
-    stub_ba_sendv fd bs'
-
-  let read_into fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
-end
-
 module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
 module Blocking_socket = Socket_family
 module Socket = Socket.Make(Time)(Fn)(Socket_family)
-module RWBuffering = Buffering.Make(Fn)(RW)
+module RWBuffering = Buffering.Make(Fn)(Socket_family)
 
 type 'a io = 'a Lwt.t
 

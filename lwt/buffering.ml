@@ -25,16 +25,6 @@ let src =
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-external stub_ba_sendv: Unix.file_descr -> (buffer * int * int) list -> int = "stub_hvsock_ba_sendv"
-let cstruct_writev fd bs =
-  let bs' = List.map (fun b -> b.Cstruct.buffer, b.Cstruct.off, b.Cstruct.len) bs in
-  stub_ba_sendv fd bs'
-
-external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
-let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
-
 module Histogram = struct
   type t = (int, int) Hashtbl.t
   (** A table of <bucket> to <count> *)
@@ -50,7 +40,7 @@ module Histogram = struct
 
 end
 
-module Make(Fn: S.FN)(RW: S.RW) = struct
+module Make(Fn: S.FN)(RW: Hvsock.Af_common.S) = struct
 
 type 'a io = 'a Lwt.t
 
@@ -64,7 +54,7 @@ let pp_write_error ppf = function
   |#error as e -> pp_error ppf e
 
 type flow = {
-  fd: RW.t;
+  fd: Unix.file_descr;
   read_buffers_max: int;
   read_max: int;
   mutable read_buffers: Cstruct.t list;
