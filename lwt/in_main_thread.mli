@@ -15,4 +15,8 @@
  *
  *)
 
-include Lwt_hvsock_s.FN
+module type MAIN = sig
+  val run_in_main: (unit -> 'a Lwt.t) -> 'a
+end
+
+module Make(Main: MAIN): S.FN

@@ -14,4 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
- include Flow_lwt_hvsock_shutdown.Make(Flow_lwt_unix_time)(Lwt_hvsock_detach)(Hvsock.Af_hyperv)
+
+open Hvsock
+
+module Make
+  (Time: Mirage_time_lwt.S)
+  (Fn: S.FN)
+  (Socket_family: Hvsock.Af_common.S):
+  S.SOCKET
+    with type sockaddr = Socket_family.sockaddr
+(** Create a Lwt socket from a
+    - source of timing
+    - a means of running blocking calls in full threads
+    - a means of creating sockets
+
+    This is useful because some of the hypervisor sockets do not support
+    select() or other methods of asynchronous I/O and we must therefore
+    run the calls in background threads. *)

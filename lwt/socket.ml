@@ -40,7 +40,7 @@ type op = {
   buf: Cstruct.t;
 }
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock_s.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
 type t = {
   mutable fd: Unix.file_descr option;

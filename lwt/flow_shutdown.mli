@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2016 Docker Inc
+ * Copyright (C) 2015 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,12 +15,21 @@
  *
  *)
 
-type error = [`Unix of Unix.error]
+(** Adds a layer of signalling over Hyper-V sockets to simulate unidirectional
+    shutdown. This implements the same protocol as:
 
-include Mirage_flow_lwt.S with type error := error
+    https://github.com/rneugeba/virtsock/tree/master/go/hvsock
+*)
 
- module Socket: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
 
- val connect: ?message_size:int -> ?buffer_size:int -> Socket.t -> flow
+  type error = [ `Unix of Unix.error ]
 
- val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
+  include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
+
+  module Socket: S.SOCKET with type sockaddr = Socket_family.sockaddr
+
+  val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
+
+  val connect: Socket.t -> flow
+end

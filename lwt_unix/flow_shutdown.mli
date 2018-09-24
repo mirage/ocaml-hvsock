@@ -19,7 +19,7 @@ type error = [`Unix of Unix.error]
 
 include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
 
- module Socket: Lwt_hvsock_s.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
+ module Socket: Hvsock_lwt.S.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
 
  val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
 

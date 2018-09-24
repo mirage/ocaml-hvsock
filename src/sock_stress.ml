@@ -42,7 +42,7 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)(Hvsock.Af_hyperv)
+module Hv = Hvsock_lwt.Flow.Make(Time)(Hvsock_lwt_unix.Preemptive_detach)(Hvsock.Af_hyperv)
 
 let rec connect i vmid serviceid =
   let fd = Hv.Socket.create () in
