@@ -15,21 +15,15 @@
  *
  *)
 
-(** An interface for hypervisor sockets which hides as many of the differences
-    between Linux and Windows as possible. *)
+(** Low-level interface to the Hyperkit AF_VSOCK interface *)
 
-exception Unsupported_platform of string
-(** An operation cannot be performed on this platform *)
+type port = int32
 
-type sockaddr
-
-val sockaddr_of_uri: Uri.t -> sockaddr
-(** Parse a URI as a socket address. This currently supports
-    - vsock://:80
-    - hvsock://<vmid>/3049197C-9A4E-4FBF-9367-97F792F16994
-    - hvsock://2:80/
-    - hyperkit://:80/Users/foo/Library/Containers/com.docker.docker/Data/vms/0
-*)
+type sockaddr = {
+  hyperkit_path: string;
+  port: port;
+}
+(** A Hyperkit AF_VSOCK socket address *)
 
 include Af_common.S
   with type sockaddr := sockaddr

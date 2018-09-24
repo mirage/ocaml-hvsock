@@ -18,6 +18,7 @@
 type platform =
   | Windows
   | Linux
+  | Mac
   | Unsupported of string
 
 let finally f g =
@@ -37,18 +38,24 @@ let startswith prefix line =
 let platform = match Sys.os_type with
   | "Win32" -> Windows
   | "Unix" ->
+    let read_line f =
+      finally
+        (fun () -> input_line f)
+        (fun () -> close_in f) in
     begin
       try
-        let f = open_in "/proc/version" in
-        finally
-          (fun () ->
-            let line = input_line f in
-            if startswith line "Linux"
-            then Linux
-            else Unsupported line
-          ) (fun () -> close_in f)
+        let line = read_line (open_in "/proc/version") in
+        if startswith "Linux" line
+        then Linux
+        else Unsupported line
       with _ ->
-        Unsupported "Unknown Unix"
+        (* Maybe it's a Mac *)
+        begin
+          let line = read_line (Unix.open_process_in "uname") in
+          if startswith "Darwin" line
+          then Mac
+          else Unsupported line
+        end
     end
   | x -> Unsupported x    
 
@@ -57,6 +64,7 @@ exception Unsupported_platform of string
 let create () = match platform with
   | Windows -> Af_hyperv.create ()
   | Linux -> Af_vsock.create ()
+  | Mac -> Hyperkit.create ()
   | Unsupported x -> raise (Unsupported_platform x)
 
 type port =
@@ -77,18 +85,18 @@ let port_of_port = function
 
 type peer =
   | Any
-  | Host
   | CID of Af_vsock.cid
   | VMID of Af_hyperv.vmid
+  | Hyperkit of string
 
 type sockaddr = peer * port
 
 let string_of_sockaddr (peer, port) =
   let string_of_peer = function
     | Any    -> "Any"
-    | Host   -> "Host"
     | CID x  -> Printf.sprintf "CID %s" (Af_vsock.string_of_cid x)
-    | VMID x -> Printf.sprintf "VMID %s" (Af_hyperv.string_of_vmid x) in
+    | VMID x -> Printf.sprintf "VMID %s" (Af_hyperv.string_of_vmid x)
+    | Hyperkit x -> Printf.sprintf "Hyperkit %s" x in
   let string_of_port = function
     | Port x      -> Int32.to_string x
     | Serviceid x -> x in
@@ -107,23 +115,29 @@ match Uri.scheme uri, Uri.host uri, Uri.port uri, Uri.path uri with
   | Some "vsock", Some cid, Some port, _ -> CID (Af_vsock.Id (Int32.of_string cid)), Port (Int32.of_int port)
   | Some "hvsock", Some "", _, serviceid -> Any, Serviceid (strip_slash serviceid)
   | Some "hvsock", Some vmid, _, serviceid -> VMID (Af_hyperv.Id vmid), Serviceid (strip_slash serviceid)
+  | Some "hyperkit", _, Some port, hyperkit_path -> Hyperkit hyperkit_path, Port (Int32.of_int port) 
   | _, _, _, _ -> invalid_arg "sockaddr_of_uri"
 
 let vmid_of_peer = function
   | Any -> Af_hyperv.Wildcard
-  | Host -> Af_hyperv.Parent
-  | CID _ -> raise (Unsupported_platform "CIDs are only supported on Linux")
   | VMID x -> x
+  | Hyperkit _ -> raise (Unsupported_platform "Hyperkit is only supported on Mac")
+  | CID _ -> raise (Unsupported_platform "CIDs are only supported on Linux")
 
 let cid_of_peer = function
   | Any -> Af_vsock.Any
-  | Host -> Af_vsock.Host
   | CID x -> x
-  | VMID _ -> raise (Unsupported_platform "VMIDs are not supported on Linux")
+  | Hyperkit _ -> raise (Unsupported_platform "Hyperkit is only supported on Mac")
+  | VMID _ -> raise (Unsupported_platform "VMIDs are only supported on Windows")
+
+let path_of_peer = function
+  | Hyperkit x -> x
+  | _ -> raise (Unsupported_platform "Mac only supports Hyperkit")
 
 let bind fd (peer, port) = match platform with
   | Windows -> Af_hyperv.bind fd { Af_hyperv.vmid = vmid_of_peer peer; serviceid = serviceid_of_port port }
   | Linux   -> Af_vsock.bind fd { Af_vsock.cid = cid_of_peer peer; port = port_of_port port }
+  | Mac -> Hyperkit.bind fd { Hyperkit.hyperkit_path = path_of_peer peer; port = port_of_port port }
   | Unsupported x -> raise (Unsupported_platform x)
 
 let accept fd = match platform with
@@ -133,6 +147,9 @@ let accept fd = match platform with
   | Linux ->
     let fd', { Af_vsock.cid; port } = Af_vsock.accept fd in
     fd', (CID cid, Port port)
+  | Mac ->
+    let fd', { Hyperkit.hyperkit_path; port } = Hyperkit.accept fd in
+    fd', (Hyperkit hyperkit_path, Port port)
   | Unsupported x -> raise (Unsupported_platform x)
 
 let connect ?timeout_ms fd sockaddr = match platform, sockaddr with
@@ -144,4 +161,8 @@ let connect ?timeout_ms fd sockaddr = match platform, sockaddr with
     let cid = cid_of_peer peer in
     let port = port_of_port port in
     Af_vsock.connect ?timeout_ms fd { Af_vsock.cid; port }
+  | Mac, (peer, port) ->
+    let path = path_of_peer peer in
+    let port = port_of_port port in
+    Hyperkit.connect ?timeout_ms fd Hyperkit.({hyperkit_path = path; port = port})
   | Unsupported x, _ -> raise (Unsupported_platform x)
