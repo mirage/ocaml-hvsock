@@ -53,7 +53,7 @@ end
 
 open Lwt.Infix
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S with type t = Unix.file_descr) = struct
 
 module Socket = Socket.Make(Time)(Fn)(Socket_family)
 

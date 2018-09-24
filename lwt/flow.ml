@@ -25,7 +25,7 @@ let src =
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S with type t = Unix.file_descr) = struct
 
 module Blocking_socket = Socket_family
 module Socket = Socket.Make(Time)(Fn)(Socket_family)

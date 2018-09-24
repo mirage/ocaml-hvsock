@@ -27,15 +27,15 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S with type t = Unix.file_descr) = struct
+
 type op = {
-  file_descr: Unix.file_descr;
+  file_descr: Socket_family.t;
   buf: Cstruct.t;
 }
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
-
 type t = {
-  mutable fd: Unix.file_descr option;
+  mutable fd: Socket_family.t option;
   read: (op, int) Fn.t;
   write: (op, int) Fn.t;
 }

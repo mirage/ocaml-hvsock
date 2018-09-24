@@ -37,3 +37,4 @@ type sockaddr = {
 
 include Af_common.S
   with type sockaddr := sockaddr
+   and type t = Unix.file_descr

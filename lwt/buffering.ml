@@ -54,7 +54,7 @@ let pp_write_error ppf = function
   |#error as e -> pp_error ppf e
 
 type flow = {
-  fd: Unix.file_descr;
+  fd: RW.t;
   read_buffers_max: int;
   read_max: int;
   mutable read_buffers: Cstruct.t list;

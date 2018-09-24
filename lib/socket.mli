@@ -33,3 +33,4 @@ val sockaddr_of_uri: Uri.t -> sockaddr
 
 include Af_common.S
   with type sockaddr := sockaddr
+   and type t = Unix.file_descr

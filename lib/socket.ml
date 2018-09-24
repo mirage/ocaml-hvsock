@@ -15,6 +15,8 @@
  *
  *)
 
+type t = Unix.file_descr
+
 type platform =
   | Windows
   | Linux

@@ -15,6 +15,8 @@
  *
  *)
 
+type t = Unix.file_descr
+
 type port = int32
 
 type sockaddr = {

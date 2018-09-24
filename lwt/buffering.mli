@@ -26,7 +26,7 @@ module Make(Fn: S.FN)(RW: Hvsock.Af_common.S): sig
     and type write_error := write_error
     and type buffer := Cstruct.t
 
-  val connect: ?message_size:int -> ?buffer_size: int -> Unix.file_descr -> flow
+  val connect: ?message_size:int -> ?buffer_size: int -> RW.t -> flow
   (** Construct a flow given something which supports read and write.
       ?message_size allows the maximum send/recv size to be limited.
       ?buffer_size controls how much buffering is placed over the socket.
