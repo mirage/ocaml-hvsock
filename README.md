@@ -1,16 +1,12 @@
-## ocaml-hvsock -- bindings for Hyper-V AF_VSOCK
+## ocaml-hvsock -- bindings for Hypervisor sockets
 
 [![Build Status (Linux)](https://travis-ci.org/mirage/ocaml-hvsock.svg)](https://travis-ci.org/mirage/ocaml-hvsock)
 [![Build status (Windows)](https://ci.appveyor.com/api/projects/status/974tsg317b4k8xra?svg=true)](https://ci.appveyor.com/project/mirage/ocaml-hvsock/branch/master)
 
-These bindings allow Host <-> VM communication on Hyper-V systems on both Linux
-and Windows.
+These bindings allow Host <-> VM communication on Windows with Hyper-V sockets
+and on Linux and macOS with `AF_VSOCK`.
 
-*Warning*: the `AF_HYPERV` patches for Linux are not yet merged and hence the
-definition of `AF_HYPERV` is not yet stable. If other address families are merged
-before this one then the value of `AF_HYPERV` will change!
-
-Please read [the API documentation](https://djs55.github.io/ocaml-hvsock/index.html).
+Please read [the API documentation](https://mirage.github.io/ocaml-hvsock/index.html).
 
 # Example
 
