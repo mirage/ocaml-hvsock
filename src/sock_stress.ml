@@ -150,8 +150,14 @@ let main c p i v l =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Af_hyperv.Id vmid) p i l);
-      `Ok ()
+      begin match Uuidm.of_string vmid with
+      | Some vmid ->
+        Lwt_main.run (client (Hvsock.Af_hyperv.Id vmid) p i l);
+        `Ok ()
+      | None ->
+        Printf.fprintf stderr "Failed to parse VM GUID: %s\n" vmid;
+        exit 1
+      end
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
       exit 1

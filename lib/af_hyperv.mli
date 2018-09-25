@@ -23,7 +23,7 @@ type vmid =
   | Children      (** Any child partition *)
   | Loopback      (** The same partition *)
   | Parent        (** The parent partition *)
-  | Id of string  (** A specific VM id *)
+  | Id of Uuidm.t (** A specific VM id *)
 
 val string_of_vmid: vmid -> string
 

@@ -22,7 +22,7 @@ type vmid =
   | Children
   | Loopback
   | Parent
-  | Id of string
+  | Id of Uuidm.t
 
 type serviceid = string
 
@@ -37,7 +37,7 @@ let string_of_sockaddr { vmid; serviceid } =
     | Children -> "Children"
     | Loopback -> "Loopback"
     | Parent   -> "Parent"
-    | Id x     -> x in
+    | Id x     -> Uuidm.to_string x in
   Printf.sprintf "AF_HYPERV { vmid = %s; serviceid = %s }" vmid serviceid
 
 external get_wildcard: unit -> string = "stub_hvsock_wildcard"
@@ -57,14 +57,16 @@ let string_of_vmid = function
   | Children -> children
   | Loopback -> loopback
   | Parent   -> parent
-  | Id x     -> x
+  | Id x     -> Uuidm.to_string x
 
 let vmid_of_string x =
   if x = wildcard then Wildcard
   else if x = children then Children
   else if x = loopback then Loopback
   else if x = parent then Parent
-  else Id x
+  else match Uuidm.of_string x with
+    | Some x -> Id x
+    | None -> failwith ("Failed to parse VM GUID: " ^ x)
 
 external do_socket: unit -> Unix.file_descr = "stub_hvsock_socket"
 
