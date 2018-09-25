@@ -98,3 +98,40 @@ let shutdown_read fd = Unix.shutdown fd Unix.SHUTDOWN_RECEIVE
 let shutdown_write fd = Unix.shutdown fd Unix.SHUTDOWN_SEND
 let close = Unix.close
 let listen = Unix.listen
+
+let finally f g =
+  try
+    let r = f () in
+    g ();
+    r
+  with e ->
+    g ();
+    raise e
+
+let vmid_of_name name =
+  let script = Printf.sprintf "(Get-VM %s).Id" name in
+  (* Avoid escaping problems by base64-encoding the script *)
+  let encoded =
+    let b = Buffer.create 100 in
+    for i = 0 to String.length script - 1 do
+      Uutf.Buffer.add_utf_16le b (Uchar.of_char script.[i])
+    done;
+    B64.encode (Buffer.contents b) in
+
+  let ic = Unix.open_process_in ("powershell.exe -Sta -NonInteractive -ExecutionPolicy RemoteSigned -EncodedCommand  "^ encoded) in
+  (* If not adminstrator this will fail with:
+     Get-VM : You do not have the required permission to complete this task. Contact the administrator of the authorization
+  *)
+  finally
+    (fun () ->
+      let line = String.trim @@ input_line ic in
+      if line <> "" then failwith line;
+      let line = String.trim @@ input_line ic in
+      if line <> "Guid" then failwith line;
+      let line = String.trim @@ input_line ic in
+      if line <> "----" then failwith line;
+      let line = String.trim @@ input_line ic in
+      match Uuidm.of_string line with
+      | None -> failwith ("Failed to discover VM GUID of " ^ name)
+      | Some x -> x
+    ) (fun () -> close_in ic)

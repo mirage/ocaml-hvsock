@@ -160,7 +160,7 @@ let cmd =
     `P "To listen for an incoming connection from anywhere to AF_VSOCK port 80 (or the corresponding AF_HYPERV port):";
     `P "hvcat -l vsock://:80";
     `P "To connect to a service in a remote partition on Windows:";
-    `P "hvcat hvsock://<vmid>/3049197C-9A4E-4FBF-9367-97F792F16994";
+    `P "hvcat hvsock://<VM name or GUID>/3049197C-9A4E-4FBF-9367-97F792F16994";
     `P "To connect to a service in a VM on Linux:";
     `P "hvcat hvsock://2:80/";
   ] in

@@ -116,7 +116,13 @@ match Uri.scheme uri, Uri.host uri, Uri.port uri, Uri.path uri with
   | Some "vsock", Some "", Some port, _ -> Any, Port (Int32.of_int port)
   | Some "vsock", Some cid, Some port, _ -> CID (Af_vsock.Id (Int32.of_string cid)), Port (Int32.of_int port)
   | Some "hvsock", Some "", _, serviceid -> Any, Serviceid (strip_slash serviceid)
-  | Some "hvsock", Some vmid, _, serviceid -> VMID (Af_hyperv.Id vmid), Serviceid (strip_slash serviceid)
+  | Some "hvsock", Some vmid, _, serviceid ->
+    let vmid = match Uuidm.of_string vmid with
+    | None ->
+      (* Attempt to look up the UUID from the name *)
+      Af_hyperv.vmid_of_name vmid
+    | Some vmid -> vmid in
+    VMID (Af_hyperv.Id vmid), Serviceid (strip_slash serviceid)
   | Some "hyperkit", _, Some port, hyperkit_path -> Hyperkit hyperkit_path, Port (Int32.of_int port) 
   | _, _, _, _ -> invalid_arg "sockaddr_of_uri"
 

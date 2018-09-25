@@ -38,3 +38,6 @@ type sockaddr = {
 include Af_common.S
   with type sockaddr := sockaddr
    and type t = Unix.file_descr
+
+val vmid_of_name: string -> string
+(** Look up a vmid given a VM's human-readable name *)

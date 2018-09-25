@@ -27,6 +27,9 @@ depends: [
   "cmdliner"
   "sha"
   "uri"
+  "base64"
+  "uuidm"
+  "uutf"
   "mirage-flow-lwt" {>= "1.2.0"}
   "mirage-time-lwt" {>= "1.0.0"}
   "cstruct" {>= "2.4.0"}
