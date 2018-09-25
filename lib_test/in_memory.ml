@@ -1,7 +1,10 @@
 type sockaddr = unit
 
 type queues =
-  {read: Cstruct.t list ref; write: Cstruct.t list ref; shutdown: bool ref}
+  { read: Cstruct.t list ref
+  ; write: Cstruct.t list ref
+  ; shutdown_read: bool ref
+  ; shutdown_write: bool ref }
 
 type listening = {mutable connecting: t list; sockaddr: sockaddr}
 
@@ -52,7 +55,12 @@ let accept t =
             | [] -> Condition.wait t.c t.m ; wait ()
             | x :: xs ->
                 l.connecting <- xs ;
-                let qs = {read= ref []; write= ref []; shutdown= ref false} in
+                let qs =
+                  { read= ref []
+                  ; write= ref []
+                  ; shutdown_read= ref false
+                  ; shutdown_write= ref false }
+                in
                 with_lock x.m (fun () ->
                     x.state <- Connected qs ;
                     Condition.broadcast x.c ) ;
@@ -60,7 +68,10 @@ let accept t =
                   { x with
                     state=
                       Connected
-                        {read= qs.write; write= qs.read; shutdown= qs.shutdown} }
+                        { read= qs.write
+                        ; write= qs.read
+                        ; shutdown_read= qs.shutdown_write
+                        ; shutdown_write= qs.shutdown_read } }
                 in
                 (y, ())
           in
@@ -90,7 +101,7 @@ let writev t bufs =
   with_lock t.m (fun () ->
       match t.state with
       | Connected qs ->
-          if !(qs.shutdown) then
+          if !(qs.shutdown_write) then
             raise (Unix.Unix_error (Unix.EPIPE, "writev", "")) ;
           qs.write := !(qs.write) @ bufs ;
           Condition.signal t.c ;
@@ -104,7 +115,8 @@ let read_into t buf =
         | Connected qs -> (
           match !(qs.read) with
           | [] ->
-              if !(qs.shutdown) then 0 else ( Condition.wait t.c t.m ; read () )
+              if !(qs.shutdown_read) then 0
+              else ( Condition.wait t.c t.m ; read () )
           | b :: bs ->
               let buf_len = Cstruct.len buf in
               let b_len = Cstruct.len b in
@@ -118,13 +130,15 @@ let read_into t buf =
       in
       read () )
 
-let shutdown_read t = () (* ignored for now *)
+let shutdown_read t = ()
+
+(* ignored for now *)
 
 let shutdown_write t =
   with_lock t.m (fun () ->
       match t.state with
       | Connected qs ->
-          qs.shutdown := true ;
+          qs.shutdown_write := true ;
           Condition.broadcast t.c
       | _ -> raise (Unix.Unix_error (Unix.EINVAL, "shutdown_write", "")) )
 
