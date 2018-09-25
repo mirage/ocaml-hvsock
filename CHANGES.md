@@ -1,3 +1,11 @@
+## 2.0.0 (2018-09-25)
+
+- Major API change: everything is now nested inside `Hvsock`, `Hvsock_lwt`
+  and `Hvsock_lwt_unix` to minimise namespace pollution.
+- Add support for macOS via `hyperkit` as used in Docker for Mac
+- Add support for Linux via `AF_VSOCK`
+- Add test suite
+
 ## 1.0.3 (2018-09-10)
 
 - Fix accept()
