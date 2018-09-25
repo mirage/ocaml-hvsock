@@ -20,9 +20,10 @@ open Hvsock
 module Make
   (Time: Mirage_time_lwt.S)
   (Fn: S.FN)
-  (Socket_family: Hvsock.Af_common.S with type t = Unix.file_descr):
+  (Socket_family: Hvsock.Af_common.S):
   S.SOCKET
     with type sockaddr = Socket_family.sockaddr
+     and type fd = Socket_family.t
 (** Create a Lwt socket from a
     - source of timing
     - a means of running blocking calls in full threads

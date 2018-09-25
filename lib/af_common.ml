@@ -15,6 +15,10 @@ module type S = sig
   val bind: t -> sockaddr -> unit
   (** [bind socket sockaddr] binds [socket] to [sockaddr] *)
 
+  val listen: t -> int -> unit
+  (** [listen socket queue_length] sets the socket to listening mode with the
+      given maximum queue length *)
+
   val accept: t -> t * sockaddr
   (** [accept fd] accepts a single connection *)
 
@@ -30,6 +34,15 @@ module type S = sig
 
   val read_into: t -> Cstruct.t -> int
   (** Read into a buffer, returning the number of bytes written *)
+
+  val shutdown_read: t -> unit
+  (** Close the read half of the connection *)
+
+  val shutdown_write: t -> unit
+  (** Close the write half of the connection *)
+
+  val close: t -> unit
+  (** Close both halves of the connection *)
 end
 
 type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t

@@ -171,3 +171,7 @@ let connect ?timeout_ms fd sockaddr = match platform, sockaddr with
 
 let read_into = Af_common.read_into
 let writev = Af_common.writev
+let shutdown_read fd = Unix.shutdown fd Unix.SHUTDOWN_RECEIVE
+let shutdown_write fd = Unix.shutdown fd Unix.SHUTDOWN_SEND
+let close = Unix.close
+let listen = Unix.listen

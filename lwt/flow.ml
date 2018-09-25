@@ -62,8 +62,6 @@ let close t =
   | false ->
     t.closed <- true;
     RWBuffering.close t.flow
-    >>= fun () ->
-    Socket.close t.socket
   | true ->
     Lwt.return ()
 
@@ -71,7 +69,7 @@ let shutdown_read t =
   (* We don't care about shutdown_read. We care about shutdown_write because
      we want to send an EOF to the remote and still receive a response. *)
   Log.debug (fun f -> f "FLOW.shutdown_read called and ignored");
-  RWBuffering.close t.flow
+  Lwt.return_unit
 
 let shutdown_write t =
   (* When we shutdown_write we still expect buffered data to be flushed. *)
@@ -83,9 +81,6 @@ let shutdown_write t =
     Log.debug (fun f -> f "shutting down writer thread");
     t.shutdown_write <- true;
     RWBuffering.shutdown_write t.flow
-    >>= fun () ->
-    Log.debug (fun f -> f "shutdown_write");
-    Socket.shutdown_write t.socket
 
   let read t = RWBuffering.read t.flow
 

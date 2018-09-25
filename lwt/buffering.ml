@@ -226,6 +226,8 @@ let close t =
     Condition.broadcast t.write_buffers_c;
     Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
+    >>= fun () ->
+    detach RW.close t.fd
   | true ->
     Lwt.return ()
 
@@ -248,6 +250,8 @@ let shutdown_write t =
     Condition.broadcast t.write_buffers_c;
     Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
+    >>= fun () ->
+    detach RW.shutdown_write t.fd
 
 (* Block until either data is available or EOF *)
 let wait_for_data_or_eof flow n =

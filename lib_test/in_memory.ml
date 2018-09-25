@@ -37,7 +37,7 @@ let bind t sockaddr =
           t.state <- Bound sockaddr
       | _ -> raise (Unix.Unix_error (Unix.EINVAL, "accept", "")) )
 
-let listen t =
+let listen t _ =
   with_lock t.m (fun () ->
       match t.state with
       | Bound sockaddr -> t.state <- Listening {connecting= []; sockaddr}
@@ -117,6 +117,8 @@ let read_into t buf =
         | _ -> raise (Unix.Unix_error (Unix.ENOTCONN, "read_into", ""))
       in
       read () )
+
+let shutdown_read t = () (* ignored for now *)
 
 let shutdown_write t =
   with_lock t.m (fun () ->

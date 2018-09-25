@@ -27,12 +27,14 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S with type t = Unix.file_descr) = struct
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
 type op = {
   file_descr: Socket_family.t;
   buf: Cstruct.t;
 }
+
+type fd = Socket_family.t
 
 type t = {
   mutable fd: Socket_family.t option;
@@ -65,17 +67,17 @@ let close t = match t with
     t.fd <- None;
     Fn.destroy t.read;
     Fn.destroy t.write;
-    detach Unix.close x
+    detach Socket_family.close x
 
 let shutdown_read t = match t with
   | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "shutdown_read", ""))
   | { fd = Some x; _ } ->
-    detach (Unix.shutdown x) Unix.SHUTDOWN_RECEIVE
+    detach Socket_family.shutdown_read x
 
 let shutdown_write t = match t with
   | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "shutdown_write", ""))
   | { fd = Some x; _ } ->
-    detach (Unix.shutdown x) Unix.SHUTDOWN_SEND
+    detach Socket_family.shutdown_write x
 
 let bind t addr = match t with
   | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
@@ -83,7 +85,7 @@ let bind t addr = match t with
 
 let listen t n = match t with
   | { fd = None; _ } -> raise (Unix.Unix_error(Unix.EBADF, "bind", ""))
-  | { fd = Some x; _ } -> Unix.listen x n
+  | { fd = Some x; _ } -> Socket_family.listen x n
 
 let accept = function
   | { fd = None; _ } -> Lwt.fail (Unix.Unix_error(Unix.EBADF, "accept", ""))

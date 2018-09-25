@@ -29,19 +29,6 @@ module type FN = sig
 
 end
 
-module type RW = sig
-    (** Read and write *)
-
-    type t
-    (** A thing which behaves like a file descriptor *)
-
-    val writev: t -> Cstruct.t list -> int
-    (** Write a list of buffers *)
-
-    val read_into: t -> Cstruct.t -> int
-    (** Read into a buffer, returning the number of bytes written *)
-end
-
 module type SOCKET = sig
   type t
   (** A socket which supports I/O via Lwt *)
@@ -54,7 +41,10 @@ module type SOCKET = sig
   val create: unit -> t
   (** [create ()] creates an unbound hypervisorsocket *)
 
-  val to_fd: t -> Unix.file_descr option
+  type fd
+  (** A low-level file descriptor *)
+
+  val to_fd: t -> fd option
   (** [to_fd t] returns the wrapped file descriptor. Note this only supports
       blocking I/O *)
 
