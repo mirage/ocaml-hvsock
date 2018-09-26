@@ -18,6 +18,7 @@
 (** Low-level interface to the AF_VSOCK socket family available on Linux kernels. *)
 
 type port = int32
+(** Ports are similar to TCP and UDP ports. *)
 
 type cid =
   | Any         (** Any address for binding *)

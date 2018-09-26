@@ -18,9 +18,10 @@
 (** Low-level interface to the Hyperkit AF_VSOCK interface *)
 
 type port = int32
+(** The AF_VSOCK port number *)
 
 type sockaddr = {
-  hyperkit_path: string;
+  hyperkit_path: string; (** directory containing the `connect` Unix domain socket, often $HOME/Library/Containers/com.docker.docker/Data/vms/0 *)
   port: port;
 }
 (** A Hyperkit AF_VSOCK socket address *)

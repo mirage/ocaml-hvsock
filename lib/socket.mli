@@ -22,6 +22,7 @@ exception Unsupported_platform of string
 (** An operation cannot be performed on this platform *)
 
 type sockaddr
+(** A socket address which can either be listened on or connected to. *)
 
 val sockaddr_of_uri: Uri.t -> sockaddr
 (** Parse a URI as a socket address. This currently supports

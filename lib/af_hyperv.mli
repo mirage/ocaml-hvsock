@@ -24,10 +24,12 @@ type vmid =
   | Loopback      (** The same partition *)
   | Parent        (** The parent partition *)
   | Id of Uuidm.t (** A specific VM id *)
+(** A vmid identifies a VM, also known as a partition *)
 
 val string_of_vmid: vmid -> string
 
 type serviceid = string
+(** A serviceid identifies a service (like a port number) *)
 
 type sockaddr = {
   vmid: vmid;           (** identifies a partition *)
@@ -40,7 +42,9 @@ include Af_common.S
    and type t = Unix.file_descr
 
 val vmid_of_name: string -> Uuidm.t
-(** Look up a vmid given a VM's human-readable name *)
+(** Look up a vmid given a VM's human-readable name.
+    This function requires Administrator privileges. *)
 
 val register_serviceid: string -> unit
-(** Register the serviceid in the registry *)
+(** Register the serviceid in the registry.
+    This function requires Administrator privileges. *)

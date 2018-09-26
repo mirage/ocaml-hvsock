@@ -17,6 +17,7 @@
  *)
 
 module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
+  (** A buffered Mirage FLOW implementation over a hypervisor socket *)
 
   type error = [ `Unix of Unix.error ]
 
@@ -25,7 +26,7 @@ module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S
   module Socket: S.SOCKET with type sockaddr = Socket_family.sockaddr
 
   val connect: ?message_size:int -> ?buffer_size: int -> Socket.t -> flow
-  (** Construct a flow given a Hyper-V socket connection.
+  (** Construct a flow given a hypervisor socket connection.
       ?message_size allows the maximum send/recv size to be limited.
       ?buffer_size controls how much buffering is placed over the socket.
 
