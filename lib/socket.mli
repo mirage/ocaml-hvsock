@@ -26,8 +26,9 @@ type sockaddr
 val sockaddr_of_uri: Uri.t -> sockaddr
 (** Parse a URI as a socket address. This currently supports
     - vsock://:80
-    - hvsock://<vmid>/3049197C-9A4E-4FBF-9367-97F792F16994
-    - hvsock://2:80/
+    - hvsock://<VM GUID>/3049197C-9A4E-4FBF-9367-97F792F16994
+    - hvsock://<VM name>/3049197C-9A4E-4FBF-9367-97F792F16994
+    - vsock://2:80/
     - hyperkit://:80/Users/foo/Library/Containers/com.docker.docker/Data/vms/0
 *)
 
