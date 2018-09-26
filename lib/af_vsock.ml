@@ -31,23 +31,23 @@ let string_of_cid = function
   | Host -> "Host"
   | Id x -> Printf.sprintf "Id %lx" x
 
-let int32_of_cid = function
-  | Any -> -1l
-  | Hypervisor -> 0l
-  | Host -> 2l
-  | Id 1l -> invalid_arg "CID 1L is reserved and must not be used"
-  | Id x -> x
+let int_of_cid = function
+  | Any -> -1
+  | Hypervisor -> 0
+  | Host -> 2
+  | Id 1l -> invalid_arg "CID 1 is reserved and must not be used"
+  | Id x -> Int32.to_int x
 
-let cid_of_int32 = function
-  | -1l -> Any
-  | 0l -> Hypervisor
-  | 1l -> invalid_arg "CID 1L is reserved and must not be used"
-  | 2l -> Host
-  | x -> Id x
+let cid_of_int = function
+  | -1 -> Any
+  | 0 -> Hypervisor
+  | 1 -> invalid_arg "CID 1 is reserved and must not be used"
+  | 2 -> Host
+  | x -> Id (Int32.of_int x)
 
-external vm_sockets_get_local_cid: unit -> int32 = "stub_vsock_get_local_cid"
+external vm_sockets_get_local_cid: unit -> int = "stub_vsock_get_local_cid"
 
-let local () = Id (vm_sockets_get_local_cid ())
+let local () = Id (Int32.of_int (vm_sockets_get_local_cid ()))
 
 type sockaddr = {
   cid: cid;
@@ -59,21 +59,21 @@ let string_of_sockaddr { cid; port } =
 
 external do_socket: unit -> Unix.file_descr = "stub_vsock_socket"
 
-external do_bind: Unix.file_descr -> int32 -> int32 -> unit = "stub_vsock_bind"
+external do_bind: Unix.file_descr -> int -> int -> unit = "stub_vsock_bind"
 
-external do_accept: Unix.file_descr -> Unix.file_descr * int32 * int32 = "stub_vsock_accept"
+external do_accept: Unix.file_descr -> Unix.file_descr * int * int = "stub_vsock_accept"
 
-external do_connect: Unix.file_descr -> int32 -> int32 -> unit = "stub_vsock_connect"
+external do_connect: Unix.file_descr -> int -> int -> unit = "stub_vsock_connect"
 
 let create = do_socket
 
-let bind fd { cid; port } = do_bind fd (int32_of_cid cid) port
+let bind fd { cid; port } = do_bind fd (int_of_cid cid) (Int32.to_int port)
 
 let accept fd =
   let new_fd, cid, port = do_accept fd in
-  new_fd, { cid = cid_of_int32 cid; port }
+  new_fd, { cid = cid_of_int cid; port = Int32.of_int port }
 
-let connect ?timeout_ms:_ fd { cid; port } = do_connect fd (int32_of_cid cid) port
+let connect ?timeout_ms:_ fd { cid; port } = do_connect fd (int_of_cid cid) (Int32.to_int port)
 
 let read_into = Af_common.read_into
 let writev = Af_common.writev

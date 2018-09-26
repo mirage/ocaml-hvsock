@@ -72,8 +72,8 @@ CAMLprim value stub_vsock_bind(value sock, value cid, value port) {
   bzero(&sa, sizeof(sa));
 
   sa.svm_family = AF_VSOCK;
-  sa.svm_port = Int32_val(port);
-  sa.svm_cid = Int32_val(cid);
+  sa.svm_port = Int_val(port);
+  sa.svm_cid = Int_val(cid);
 
   int res = bind(Int_val(sock), (const struct sockaddr *)&sa, sizeof(sa));
   if (res == -1) {
@@ -120,8 +120,8 @@ CAMLprim value stub_vsock_connect(value sock, value cid, value port){
 
   bzero(&sa, sizeof(sa));
   sa.svm_family = AF_VSOCK;
-  sa.svm_cid = Int32_val(cid);
-  sa.svm_port = Int32_val(port);
+  sa.svm_cid = Int_val(cid);
+  sa.svm_port = Int_val(port);
   
   caml_release_runtime_system();
   res = connect(fd, (const struct sockaddr *)&sa, sizeof(sa));
