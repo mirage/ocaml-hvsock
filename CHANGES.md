@@ -5,6 +5,7 @@
 - Add support for macOS via `hyperkit` as used in Docker for Mac
 - Add support for Linux via `AF_VSOCK`
 - Add test suite
+- Build with dune (was jbuilder)
 
 ## 1.0.3 (2018-09-10)
 

@@ -15,8 +15,6 @@
  *
  *)
 
-open Hvsock
-
 module Make
   (Time: Mirage_time_lwt.S)
   (Fn: S.FN)

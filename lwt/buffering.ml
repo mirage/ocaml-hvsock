@@ -231,7 +231,7 @@ let close t =
   | true ->
     Lwt.return ()
 
-let shutdown_read t =
+let shutdown_read _t =
   (* We don't care about shutdown_read. We care about shutdown_write because
      we want to send an EOF to the remote and still receive a response. *)
   Log.debug (fun f -> f "FLOW.shutdown_read called and ignored");

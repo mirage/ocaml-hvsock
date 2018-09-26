@@ -130,7 +130,7 @@ let read_into t buf =
       in
       read () )
 
-let shutdown_read t = ()
+let shutdown_read _t = ()
 
 (* ignored for now *)
 
@@ -145,7 +145,7 @@ let shutdown_write t =
 let close t =
   with_lock t.m (fun () ->
       match t.state with
-      | Connected qs ->
+      | Connected _ ->
           t.state <- Closed ;
           Condition.broadcast t.c
       | Bound sockaddr -> Hashtbl.remove bound_sockets sockaddr

@@ -16,8 +16,6 @@
  *
  *)
 
-open Lwt.Infix
-
 let src =
   let src = Logs.Src.create "flow_lwt_hvsock" ~doc:"AF_HYPERV flow" in
   Logs.Src.set_level src (Some Logs.Debug);
@@ -65,7 +63,7 @@ let close t =
   | true ->
     Lwt.return ()
 
-let shutdown_read t =
+let shutdown_read _t =
   (* We don't care about shutdown_read. We care about shutdown_write because
      we want to send an EOF to the remote and still receive a response. *)
   Log.debug (fun f -> f "FLOW.shutdown_read called and ignored");
