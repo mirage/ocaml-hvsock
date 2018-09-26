@@ -16,7 +16,7 @@
  *
  *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S with type t = Unix.file_descr): sig
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
 
   type error = [ `Unix of Unix.error ]
 
