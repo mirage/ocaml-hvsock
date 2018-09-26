@@ -51,6 +51,10 @@ let echo =
   let doc = "Run a simple multithreaded echo server" in
   Arg.(value & flag & info ["echo"] ~doc)
 
+let register =
+  let doc = "Add Hyper-V service GUID to the registry (requires Administrator)" in
+  Arg.(value & flag & info ["register-guid"] ~doc)
+
 let buffer_size = 4096
 
 module Time = struct
@@ -140,9 +144,17 @@ let echo_server sockaddr =
   >>= fun () ->
   Hv.close s
 
-let main listen echo uri =
+let register_guid sockaddr =
+  match Hvsock.Socket.to_hyperv sockaddr with
+  | Some { Hvsock.Af_hyperv.serviceid; _ } ->
+    Hvsock.Af_hyperv.register_serviceid serviceid
+  | None -> ()
+
+(* --register ? *)
+let main listen echo uri register =
   let sockaddr = Hvsock.Socket.sockaddr_of_uri (Uri.of_string uri) in
   Printf.fprintf stderr "listen=%b echo=%b sockaddr=%s\n%!" listen echo (Hvsock.Socket.string_of_sockaddr sockaddr);
+  if register then register_guid sockaddr;
   let t = match listen, echo with
     | true, false -> one_shot_server sockaddr
     | true, true -> echo_server sockaddr
@@ -164,7 +176,7 @@ let cmd =
     `P "To connect to a service in a VM on Linux:";
     `P "hvcat hvsock://2:80/";
   ] in
-  Term.(pure main $ listen $ echo $ uri),
+  Term.(pure main $ listen $ echo $ uri $ register),
   Term.info "hvcat" ~version:"0.1" ~doc ~man
 
 let () =

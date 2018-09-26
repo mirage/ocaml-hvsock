@@ -16,7 +16,7 @@
  *)
 
 (** An interface for hypervisor sockets which hides as many of the differences
-    between Linux and Windows as possible. *)
+    between Linux, Windows and Mac as possible. *)
 
 exception Unsupported_platform of string
 (** An operation cannot be performed on this platform *)
@@ -30,6 +30,15 @@ val sockaddr_of_uri: Uri.t -> sockaddr
     - hvsock://2:80/
     - hyperkit://:80/Users/foo/Library/Containers/com.docker.docker/Data/vms/0
 *)
+
+val to_hyperv: sockaddr -> Af_hyperv.sockaddr option
+(** Expose the AF_HYPERV socket address, if one exists *)
+
+val to_vsock: sockaddr -> Af_vsock.sockaddr option
+(** Expose the AF_VSOCK socket address, if one exists *)
+
+val to_hyperkit: sockaddr -> Hyperkit.sockaddr option
+(** Expose the hyperkit socket address, if one exists *)
 
 include Af_common.S
   with type sockaddr := sockaddr

@@ -160,6 +160,27 @@ let accept fd = match platform with
     fd', (Hyperkit hyperkit_path, Port port)
   | Unsupported x -> raise (Unsupported_platform x)
 
+let to_hyperv (peer, port) =
+  try
+    let vmid = vmid_of_peer peer in
+    let serviceid = serviceid_of_port port in
+    Some { Af_hyperv.vmid; serviceid }
+  with _ -> None
+
+let to_vsock (peer, port) =
+  try
+    let cid = cid_of_peer peer in
+    let port = port_of_port port in
+    Some { Af_vsock.cid; port }
+  with _ -> None
+
+let to_hyperkit (peer, port) =
+  try
+    let hyperkit_path = path_of_peer peer in
+    let port = port_of_port port in
+    Some Hyperkit.({hyperkit_path; port })
+  with _ -> None
+
 let connect ?timeout_ms fd sockaddr = match platform, sockaddr with
   | Windows, (peer, port) ->
     let vmid = vmid_of_peer peer in

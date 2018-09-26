@@ -39,5 +39,8 @@ include Af_common.S
   with type sockaddr := sockaddr
    and type t = Unix.file_descr
 
-val vmid_of_name: string -> string
+val vmid_of_name: string -> Uuidm.t
 (** Look up a vmid given a VM's human-readable name *)
+
+val register_serviceid: string -> unit
+(** Register the serviceid in the registry *)

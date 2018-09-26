@@ -99,17 +99,7 @@ let shutdown_write fd = Unix.shutdown fd Unix.SHUTDOWN_SEND
 let close = Unix.close
 let listen = Unix.listen
 
-let finally f g =
-  try
-    let r = f () in
-    g ();
-    r
-  with e ->
-    g ();
-    raise e
-
-let vmid_of_name name =
-  let script = Printf.sprintf "(Get-VM %s).Id" name in
+let with_powershell script f =
   (* Avoid escaping problems by base64-encoding the script *)
   let encoded =
     let b = Buffer.create 100 in
@@ -119,11 +109,26 @@ let vmid_of_name name =
     B64.encode (Buffer.contents b) in
 
   let ic = Unix.open_process_in ("powershell.exe -Sta -NonInteractive -ExecutionPolicy RemoteSigned -EncodedCommand  "^ encoded) in
-  (* If not adminstrator this will fail with:
-     Get-VM : You do not have the required permission to complete this task. Contact the administrator of the authorization
-  *)
-  finally
-    (fun () ->
+  let closed = ref false in
+  try
+    let result = f ic in
+    begin match Unix.close_process_in ic with
+    | Unix.WEXITED 0 -> result
+    | _ ->
+      closed := true;
+      Printf.fprintf stderr "Failed to run powershell script:\n%s\n" script;
+      failwith "Failed to run powershell"
+    end
+  with e ->
+    if not(!closed) then ignore(Unix.close_process_in ic);
+    raise e
+
+let vmid_of_name name =
+  with_powershell (Printf.sprintf "(Get-VM %s).Id" name)
+    (fun ic ->
+      (* If not adminstrator this will fail with:
+        Get-VM : You do not have the required permission to complete this task. Contact the administrator of the authorization
+      *)
       let line = String.trim @@ input_line ic in
       if line <> "" then failwith line;
       let line = String.trim @@ input_line ic in
@@ -134,4 +139,16 @@ let vmid_of_name name =
       match Uuidm.of_string line with
       | None -> failwith ("Failed to discover VM GUID of " ^ name)
       | Some x -> x
-    ) (fun () -> close_in ic)
+    )
+
+let register_serviceid serviceid =
+  let script = String.concat "\n" [
+    (* Get-Item with a regexp doesn't spam the output if the key doesn't exist.
+       Note [S]OFTWARE only matches SOFTWARE *)
+    Printf.sprintf "if (!(Get-Item -Path \"HKLM:\\[S]OFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\\%s\")) {" serviceid;
+    Printf.sprintf "  $service = New-Item -Path \"HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Virtualization\\GuestCommunicationServices\" -Name %s" serviceid;
+    "  # Set a friendly name";
+    "  $service.SetValue(\"ElementName\", \"https://github.com/mirage/ocaml-hvsock\")";
+    "}";
+  ] in
+  with_powershell script (fun _ic -> ())
