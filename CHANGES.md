@@ -6,6 +6,7 @@
 - Add support for Linux via `AF_VSOCK`
 - Add test suite
 - Build with dune (was jbuilder)
+- Example program `hvcat` works on Mac, Windows and Linux
 
 ## 1.0.3 (2018-09-10)
 
