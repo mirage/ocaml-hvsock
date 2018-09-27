@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2017 Docker Inc
+ * Copyright (C) 2016 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,4 +15,12 @@
  *
  *)
 
-include Lwt_hvsock.FN
+type error = [`Unix of Unix.error]
+
+include Mirage_flow_lwt.S with type error := error
+
+ module Socket: Hvsock_lwt.S.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
+
+ val connect: ?message_size:int -> ?buffer_size:int -> Socket.t -> flow
+
+ val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t

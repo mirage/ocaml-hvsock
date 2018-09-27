@@ -21,15 +21,19 @@
     https://github.com/rneugeba/virtsock/tree/master/go/hvsock
 *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN): sig
+module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
+
+  (** A Mirage FLOW over a hypervisor socket with an additional protocol layer to
+      workaround bugs where in-flight data is lost after a shutdown_write or a close.
+  *)
 
   type error = [ `Unix of Unix.error ]
 
   include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
 
-  module Hvsock: Lwt_hvsock.HVSOCK
+  module Socket: S.SOCKET with type sockaddr = Socket_family.sockaddr
 
   val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
 
-  val connect: Hvsock.t -> flow
+  val connect: Socket.t -> flow
 end

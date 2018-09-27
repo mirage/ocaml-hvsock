@@ -2,19 +2,24 @@
 .PHONY: build clean test
 
 build:
-	jbuilder build @install
+	dune build @install
 
 test:
-	jbuilder runtest
+	dune runtest
 
 install:
-	jbuilder install
+	dune install
 
 uninstall:
-	jbuilder uninstall
+	dune uninstall
 
 clean:
-	jbuilder clean
+	dune clean
+
+.PHONY: in-linux-container
+in-linux-container:
+	docker build -t hvsock .
+	docker run -v `pwd`:/src -it hvsock opam config exec -- sh
 
 REPO=../../mirage/opam-repository
 PACKAGES=$(REPO)/packages

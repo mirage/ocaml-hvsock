@@ -16,22 +16,10 @@
  *
  *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN): sig
+type t = Cstruct.t list
 
-  type error = [ `Unix of Unix.error ]
+val shift: t -> int -> t
 
-  include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
+val len: t -> int
 
-  module Hvsock: Lwt_hvsock.HVSOCK
-
-  val connect: ?message_size:int -> ?buffer_size: int -> Hvsock.t -> flow
-  (** Construct a flow given a Hyper-V socket connection.
-      ?message_size allows the maximum send/recv size to be limited.
-      ?buffer_size controls how much buffering is placed over the socket.
-
-      Note the buffer handling of this flow is different to normal: `read` and
-      `readv` will retain references to the passed buffers. They must not be
-      used again by the calling application. *)
-
-  val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
-end
+val sub: t -> int -> int -> t

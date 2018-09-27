@@ -15,12 +15,18 @@
  *
  *)
 
-type error = [`Unix of Unix.error]
+module Make
+  (Time: Mirage_time_lwt.S)
+  (Fn: S.FN)
+  (Socket_family: Hvsock.Af_common.S):
+  S.SOCKET
+    with type sockaddr = Socket_family.sockaddr
+     and type fd = Socket_family.t
+(** Create a Lwt socket from a
+    - source of timing
+    - a means of running blocking calls in full threads
+    - a means of creating sockets
 
-include Mirage_flow_lwt.S with type error := error
-
- module Hvsock: Lwt_hvsock.HVSOCK
-
- val connect: ?message_size:int -> ?buffer_size:int -> Hvsock.t -> flow
-
- val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
+    This is useful because some of the hypervisor sockets do not support
+    select() or other methods of asynchronous I/O and we must therefore
+    run the calls in background threads. *)

@@ -1,5 +1,5 @@
 (*
- * Copyright (C) 2016 Docker Inc
+ * Copyright (C) 2018 Docker Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,12 +15,17 @@
  *
  *)
 
-type error = [`Unix of Unix.error]
+(** Low-level interface to the Hyperkit AF_VSOCK interface *)
 
-include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
+type port = int32
+(** The AF_VSOCK port number *)
 
- module Hvsock: Lwt_hvsock.HVSOCK
+type sockaddr = {
+  hyperkit_path: string; (** directory containing the `connect` Unix domain socket, often $HOME/Library/Containers/com.docker.docker/Data/vms/0 *)
+  port: port;
+}
+(** A Hyperkit AF_VSOCK socket address *)
 
- val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
-
- val connect: Hvsock.t -> flow
+include Af_common.S
+  with type sockaddr := sockaddr
+  and type t = Unix.file_descr

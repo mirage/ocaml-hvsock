@@ -14,4 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
- include Flow_lwt_hvsock_shutdown.Make(Flow_lwt_unix_time)(Lwt_hvsock_detach)
+
+type error = [`Unix of Unix.error]
+
+include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
+
+ module Socket: Hvsock_lwt.S.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
+
+ val read_into: flow -> Cstruct.t -> (unit Mirage_flow.or_eof, error) result Lwt.t
+
+ val connect: Socket.t -> flow

@@ -25,54 +25,6 @@ let src =
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-type buffer = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
-
-external stub_ba_sendv: Unix.file_descr -> (buffer * int * int) list -> int = "stub_hvsock_ba_sendv"
-let cstruct_writev fd bs =
-  let bs' = List.map (fun b -> b.Cstruct.buffer, b.Cstruct.off, b.Cstruct.len) bs in
-  stub_ba_sendv fd bs'
-
-external stub_ba_recv: Unix.file_descr -> buffer -> int -> int -> int = "stub_hvsock_ba_recv"
-let cstruct_read fd b = stub_ba_recv fd b.Cstruct.buffer b.Cstruct.off b.Cstruct.len
-
-module Cstructs = struct
-
-let pp_t ppf t =
-  List.iter (fun t ->
-    Format.fprintf ppf "[%d,%d](%d)" t.Cstruct.off t.Cstruct.len (Bigarray.Array1.dim t.Cstruct.buffer)
-  ) t
-
-let len = List.fold_left (fun acc c -> Cstruct.len c + acc) 0
-
-let err fmt =
-  let b = Buffer.create 20 in                         (* for thread safety. *)
-  let ppf = Format.formatter_of_buffer b in
-  let k ppf = Format.pp_print_flush ppf (); invalid_arg (Buffer.contents b) in
-  Format.kfprintf k ppf fmt
-
-let rec shift t x =
-  if x = 0 then t else match t with
-  | [] -> err "Cstructs.shift %a %d" pp_t t x
-  | y :: ys ->
-    let y' = Cstruct.len y in
-    if y' > x
-    then Cstruct.shift y x :: ys
-    else shift ys (x - y')
-
-    let sub t off len =
-      let t' = shift t off in
-      (* trim the length *)
-      let rec trim acc ts remaining = match remaining, ts with
-        | 0, _ -> List.rev acc
-        | _, [] -> err "invalid bounds in Cstructs.sub %a off=%d len=%d" pp_t t off len
-        | n, t :: ts ->
-          let to_take = min (Cstruct.len t) n in
-          (* either t is consumed and we only need ts, or t has data remaining in which
-             case we're finished *)
-          trim (Cstruct.sub t 0 to_take :: acc) ts (remaining - to_take) in
-      trim [] t' len
-end
-
 module Histogram = struct
   type t = (int, int) Hashtbl.t
   (** A table of <bucket> to <count> *)
@@ -88,10 +40,7 @@ module Histogram = struct
 
 end
 
-module Make(Time: Mirage_time_lwt.S)(Fn: Lwt_hvsock.FN) = struct
-
-module Blocking_hvsock = Hvsock
-module Hvsock = Lwt_hvsock.Make(Time)(Fn)
+module Make(Fn: S.FN)(RW: Hvsock.Af_common.S) = struct
 
 type 'a io = 'a Lwt.t
 
@@ -105,7 +54,7 @@ let pp_write_error ppf = function
   |#error as e -> pp_error ppf e
 
 type flow = {
-  fd: Hvsock.t;
+  fd: RW.t;
   read_buffers_max: int;
   read_max: int;
   mutable read_buffers: Cstruct.t list;
@@ -161,7 +110,6 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
 
 
   let write_thread () =
-    let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
     let get_buffers () =
       Mutex.lock write_buffers_m;
       while t.write_buffers = [] && not t.shutdown_write do
@@ -186,7 +134,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             Histogram.add t.write_histogram to_write;
             let buf = Cstructs.sub remaining 0 to_write in
             Log.debug (fun f -> f "write_thread writing %d" (Cstructs.len buf));
-            let n = cstruct_writev fd buf in
+            let n = RW.writev fd buf in
             Log.debug (fun f -> f "write_thread wrote %d" n);
             loop @@ Cstructs.shift remaining n
           end in
@@ -208,7 +156,6 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
     in
   let _ = Thread.create write_thread () in
   let read_thread () =
-    let fd = match Hvsock.to_fd fd with Some x -> x | None -> assert false in
     let get_buffer () =
       Mutex.lock t.read_buffers_m;
       while t.read_buffers_len = t.read_buffers_max do
@@ -229,7 +176,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             let buf = Cstruct.sub remaining 0 to_read in
             Histogram.add t.read_histogram to_read;
             Log.debug (fun f -> f "read_thread reading...");
-            let n = cstruct_read fd buf in
+            let n = RW.read_into fd buf in
             Log.debug (fun f -> f "read_thread read %d" n);
             let data = Cstruct.sub remaining 0 n in
             Mutex.lock t.read_buffers_m;
@@ -280,11 +227,11 @@ let close t =
     Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
     >>= fun () ->
-    Hvsock.close t.fd
+    detach RW.close t.fd
   | true ->
     Lwt.return ()
 
-let shutdown_read t =
+let shutdown_read _t =
   (* We don't care about shutdown_read. We care about shutdown_write because
      we want to send an EOF to the remote and still receive a response. *)
   Log.debug (fun f -> f "FLOW.shutdown_read called and ignored");
@@ -304,8 +251,7 @@ let shutdown_write t =
     Mutex.unlock t.write_buffers_m;
     detach wait_write_flush t
     >>= fun () ->
-    Log.debug (fun f -> f "shutdown_write");
-    Hvsock.shutdown_write t.fd
+    detach RW.shutdown_write t.fd
 
 (* Block until either data is available or EOF *)
 let wait_for_data_or_eof flow n =

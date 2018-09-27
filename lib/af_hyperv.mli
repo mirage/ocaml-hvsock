@@ -15,33 +15,36 @@
  *
  *)
 
+(** Low-level interface to the AF_HYPERV socket family available on Windows kernels. *)
+
+
 type vmid =
   | Wildcard      (** Any partition *)
   | Children      (** Any child partition *)
   | Loopback      (** The same partition *)
   | Parent        (** The parent partition *)
-  | Id of string  (** A specific VM id *)
+  | Id of Uuidm.t (** A specific VM id *)
+(** A vmid identifies a VM, also known as a partition *)
 
 val string_of_vmid: vmid -> string
 
+type serviceid = string
+(** A serviceid identifies a service (like a port number) *)
+
 type sockaddr = {
-  vmid: vmid;         (** identifies a partition *)
-  serviceid: string;  (** identifies a service *)
+  vmid: vmid;           (** identifies a partition *)
+  serviceid: serviceid; (** identifies a service *)
 }
 (** An AF_HVSOCK socket address *)
 
-val create: unit -> Unix.file_descr
-(** [create ()] creates an unbound AF_HVSOCK socket *)
+include Af_common.S
+  with type sockaddr := sockaddr
+   and type t = Unix.file_descr
 
-val bind: Unix.file_descr -> sockaddr -> unit
-(** [bind socket sockaddr] binds [socket] to [sockaddr] *)
+val vmid_of_name: string -> Uuidm.t
+(** Look up a vmid given a VM's human-readable name.
+    This function requires Administrator privileges. *)
 
-val accept: Unix.file_descr -> Unix.file_descr * sockaddr
-(** [accept fd] accepts a single connection *)
-
-val connect: ?timeout_ms:int -> Unix.file_descr -> sockaddr -> unit
-(** [connect ?timeout_ms fd sockaddr] connects to a remote partition.
-    Since the raw socket call can block forever if the server is not
-    running when the call is executed (even if the server starts up afterwards)
-    there is a default timeout of 300ms. On timeout this will raise
-    [Unix_error(Unix.ETIMEDOUT)] *)
+val register_serviceid: string -> unit
+(** Register the serviceid in the registry.
+    This function requires Administrator privileges. *)

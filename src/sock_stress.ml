@@ -42,19 +42,19 @@ module Time = struct
   type 'a io = 'a Lwt.t
   let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
 end
-module Hv = Flow_lwt_hvsock.Make(Time)(Lwt_hvsock_detach)
+module Hv = Hvsock_lwt.Flow.Make(Time)(Hvsock_lwt_unix.Preemptive_detach)(Hvsock.Af_hyperv)
 
 let rec connect i vmid serviceid =
-  let fd = Hv.Hvsock.create () in
+  let fd = Hv.Socket.create () in
   Lwt.catch
     (fun () ->
-      Hv.Hvsock.connect fd { Hvsock.vmid; serviceid }
+      Hv.Socket.connect fd { Hvsock.Af_hyperv.vmid; serviceid }
       >>= fun () ->
       let flow = Hv.connect fd in
       Lwt.return flow
     ) (fun e ->
       debug "%d: connect raised %s: sleep 1s and retrying" i (Printexc.to_string e);
-      Hv.Hvsock.close fd
+      Hv.Socket.close fd
       >>= fun () ->
       Lwt_unix.sleep 1.
       >>= fun () ->
@@ -150,8 +150,14 @@ let main c p i v l =
     let u = Uri.of_string uri in
     begin match Uri.scheme u, Uri.host u with
     | Some "hvsock", Some vmid ->
-      Lwt_main.run (client (Hvsock.Id vmid) p i l);
-      `Ok ()
+      begin match Uuidm.of_string vmid with
+      | Some vmid ->
+        Lwt_main.run (client (Hvsock.Af_hyperv.Id vmid) p i l);
+        `Ok ()
+      | None ->
+        Printf.fprintf stderr "Failed to parse VM GUID: %s\n" vmid;
+        exit 1
+      end
     | _, _ ->
       Printf.fprintf stderr "Please provide a -c hvsock://<vmid> argument\n";
       exit 1
@@ -176,7 +182,7 @@ let l =
   Arg.(value & opt int 65536 & info ~docv:"MAX DATA LENGTH" ~doc:"Maximum length of data" [ "l" ])
 
 let cmd =
-  let doc = "Test AF_HVSOCK connections" in
+  let doc = "Test AF_HYPERV connections" in
   let man = [
     `S "DESCRIPTION";
     `P "Establish a connection to an echo server via a Hyper-V socket, send random data, receive a response and check the data is the same. ";

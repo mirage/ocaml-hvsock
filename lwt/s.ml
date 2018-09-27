@@ -15,8 +15,6 @@
  *
  *)
 
-open Hvsock
-
 module type FN = sig
   (** Call a blocking ('a -> 'b) function in a ('a -> 'b Lwt.t) context *)
 
@@ -31,14 +29,22 @@ module type FN = sig
 
 end
 
-module type HVSOCK = sig
+module type SOCKET = sig
   type t
-  (** A Hyper-V socket *)
+  (** A socket which supports I/O via Lwt *)
+
+  type sockaddr
+  (** A socket address *)
+
+  val string_of_sockaddr: sockaddr -> string
 
   val create: unit -> t
-  (** [create ()] creates an unbound AF_HVSOCK socket *)
+  (** [create ()] creates an unbound hypervisorsocket *)
 
-  val to_fd: t -> Unix.file_descr option
+  type fd
+  (** A low-level file descriptor *)
+
+  val to_fd: t -> fd option
   (** [to_fd t] returns the wrapped file descriptor. Note this only supports
       blocking I/O *)
 
@@ -72,7 +78,3 @@ module type HVSOCK = sig
   val shutdown_write: t -> unit Lwt.t
   (** [shutdown_write t] closes the write side of the socket *)
 end
-
-module Make(Time: Mirage_time_lwt.S)(Fn: FN): HVSOCK
-(** Create an HVSOCK implementation given the ability to run blocking
-    functions outside of Lwt. *)
