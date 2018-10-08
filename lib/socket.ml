@@ -123,7 +123,13 @@ match Uri.scheme uri, Uri.host uri, Uri.port uri, Uri.path uri with
       Af_hyperv.vmid_of_name vmid
     | Some vmid -> vmid in
     VMID (Af_hyperv.Id vmid), Serviceid (strip_slash serviceid)
-  | Some "hyperkit", _, Some port, hyperkit_path -> Hyperkit hyperkit_path, Port (Int32.of_int port) 
+  | Some "hyperkit", _, Some port, hyperkit_path ->
+    (* Support relative paths which start with "/." *)
+    let hyperkit_path =
+      if String.length hyperkit_path >= 2 && String.sub hyperkit_path 0 2 = "/."
+      then String.sub hyperkit_path 1 (String.length hyperkit_path - 1)
+      else hyperkit_path in
+    Hyperkit hyperkit_path, Port (Int32.of_int port)
   | _, _, _, _ -> invalid_arg "sockaddr_of_uri"
 
 let vmid_of_peer = function
