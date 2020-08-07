@@ -1,12 +1,16 @@
-FROM alpine
+FROM alpine AS build
 RUN apk update && apk add opam alpine-sdk bash
-RUN opam init --comp=4.06.1 --switch=4.06.1 -y
+RUN opam init --comp=4.10.0 --switch=4.10.0 --disable-sandboxing -y
+RUN opam install depext -y
 
-# We don't want to rebuild this whole image when the source code changes
-# so we only copy in the package metadata.
+COPY . /src
 COPY hvsock.opam /src/hvsock.opam
 RUN opam pin add hvsock /src/ -n
-RUN opam config exec -- opam depext hvsock -y
-RUN opam config exec -- opam install hvsock --deps-only
+RUN opam depext hvsock -y
+RUN opam install hvsock -y
+# /root/.opam/4.10.0/bin/hvcat
+RUN cp $(opam config exec -- which hvcat) /hvcat
 
-WORKDIR /src
+FROM alpine
+COPY --from=build /hvcat /hvcat
+ENTRYPOINT [ "/hvcat" ]
