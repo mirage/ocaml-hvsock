@@ -106,7 +106,9 @@ let with_powershell script f =
     for i = 0 to String.length script - 1 do
       Uutf.Buffer.add_utf_16le b (Uchar.of_char script.[i])
     done;
-    B64.encode (Buffer.contents b) in
+    match Base64.encode (Buffer.contents b) with
+    | Ok x -> x
+    | Error (`Msg y) -> failwith ("Base64.encode failed unexpectedly: " ^ y) in
 
   let ic = Unix.open_process_in ("powershell.exe -Sta -NonInteractive -ExecutionPolicy RemoteSigned -EncodedCommand  "^ encoded) in
   let closed = ref false in
