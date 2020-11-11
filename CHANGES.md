@@ -1,4 +1,4 @@
-## 2.0.0 (2018-09-25)
+## 2.0.0 (2020-11-10)
 
 - Major API change: everything is now nested inside `Hvsock`, `Hvsock_lwt`
   and `Hvsock_lwt_unix` to minimise namespace pollution.
@@ -7,6 +7,7 @@
 - Add test suite
 - Build with dune (was jbuilder)
 - Example program `hvcat` works on Mac, Windows and Linux
+- Require base64 >= 3.0.0
 
 ## 1.0.3 (2018-09-10)
 
