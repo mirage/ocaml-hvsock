@@ -23,15 +23,11 @@ let src =
 
 module Log = (val Logs.src_log src : Logs.LOG)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
 module Blocking_socket = Socket_family
 module Socket = Socket.Make(Time)(Fn)(Socket_family)
 module RWBuffering = Buffering.Make(Fn)(Socket_family)
-
-type 'a io = 'a Lwt.t
-
-type buffer = Cstruct.t
 
 type error = [ `Unix of Unix.error ]
 let pp_error ppf (`Unix e) = Fmt.string ppf (Unix.error_message e)

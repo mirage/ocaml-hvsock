@@ -14,6 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
-type 'a io = 'a Lwt.t
-
 let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)

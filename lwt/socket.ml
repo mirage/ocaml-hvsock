@@ -27,7 +27,7 @@ open Lwt.Infix
       and raise ECONNREFUSED ourselves.
 *)
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
 type op = {
   file_descr: Socket_family.t;
