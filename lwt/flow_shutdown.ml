@@ -53,13 +53,9 @@ end
 
 open Lwt.Infix
 
-module Make(Time: Mirage_time_lwt.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
 module Socket = Socket.Make(Time)(Fn)(Socket_family)
-
-type 'a io = 'a Lwt.t
-
-type buffer = Cstruct.t
 
 type error = [ `Unix of Unix.error ]
 let pp_error ppf (`Unix e) = Fmt.string ppf (Unix.error_message e)

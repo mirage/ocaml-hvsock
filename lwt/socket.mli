@@ -16,7 +16,7 @@
  *)
 
 module Make
-  (Time: Mirage_time_lwt.S)
+  (Time: Mirage_time.S)
   (Fn: S.FN)
   (Socket_family: Hvsock.Af_common.S):
   S.SOCKET

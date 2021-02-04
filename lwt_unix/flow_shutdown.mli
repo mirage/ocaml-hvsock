@@ -17,7 +17,7 @@
 
 type error = [`Unix of Unix.error]
 
-include Mirage_flow_lwt.SHUTDOWNABLE with type error := error
+include Mirage_flow_combinators.SHUTDOWNABLE with type error := error
 
  module Socket: Hvsock_lwt.S.SOCKET with type sockaddr = Hvsock.Af_hyperv.sockaddr
 
