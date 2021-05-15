@@ -1,3 +1,8 @@
+## 3.0.0 (2021-05-15)
+
+- Use new Mirage signatures (#66 from @talex5)
+- Better dune lower bound from @mseri (#65)
+
 ## 2.0.0 (2020-11-10)
 
 - Major API change: everything is now nested inside `Hvsock`, `Hvsock_lwt`
