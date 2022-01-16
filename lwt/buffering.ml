@@ -169,10 +169,10 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
       while not t.closed && not t.shutdown_read do
         let buffer = get_buffer () in
         let rec loop remaining =
-          if Cstruct.len remaining = 0 then begin
+          if Cstruct.length remaining = 0 then begin
             Log.debug (fun f -> f "read_thread EOF")
           end else begin
-            let to_read = min t.read_max (Cstruct.len remaining) in
+            let to_read = min t.read_max (Cstruct.length remaining) in
             let buf = Cstruct.sub remaining 0 to_read in
             Histogram.add t.read_histogram to_read;
             Log.debug (fun f -> f "read_thread reading...");
@@ -181,7 +181,7 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             let data = Cstruct.sub remaining 0 n in
             Mutex.lock t.read_buffers_m;
             t.read_buffers <- t.read_buffers @ [ data ];
-            t.read_buffers_len <- t.read_buffers_len + (Cstruct.len data);
+            t.read_buffers_len <- t.read_buffers_len + (Cstruct.length data);
             Condition.broadcast t.read_buffers_c;
             Mutex.unlock t.read_buffers_m;
             if n = 0 then begin
@@ -270,7 +270,7 @@ let read flow =
       match flow.read_buffers with
       | result :: rest ->
         flow.read_buffers <- rest;
-        flow.read_buffers_len <- flow.read_buffers_len - (Cstruct.len result);
+        flow.read_buffers_len <- flow.read_buffers_len - (Cstruct.length result);
         Condition.broadcast flow.read_buffers_c;
         `Data result
       | [] ->
@@ -304,7 +304,7 @@ let wait_for_space flow n =
 
 let writev flow bufs =
   if flow.closed || flow.shutdown_write || flow.write_error then Lwt.return (Error `Closed) else begin
-    let len = List.fold_left (+) 0 (List.map Cstruct.len bufs) in
+    let len = List.fold_left (+) 0 (List.map Cstruct.length bufs) in
     Mutex.lock flow.write_buffers_m;
     let put () =
       flow.write_buffers <- (List.rev bufs) @ flow.write_buffers;

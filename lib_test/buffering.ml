@@ -4,13 +4,13 @@ open Lwt.Infix
 
 let send flow n =
   let buf = Cstruct.create 65536 in
-  for i = 0 to Cstruct.len buf - 1 do
+  for i = 0 to Cstruct.length buf - 1 do
     Cstruct.set_char buf i 'X'
   done;
   let rec loop remaining =
     if remaining = 0 then Lwt.return_unit
     else
-      let to_send = min (Cstruct.len buf) remaining in
+      let to_send = min (Cstruct.length buf) remaining in
       In_memory_buffer.writev flow [Cstruct.sub buf 0 to_send]
       >>= function
       | Error _ -> failwith "In_memory_buffer.writev"
@@ -23,7 +23,7 @@ let read_all flow =
     In_memory_buffer.read flow
     >>= function
     | Ok `Eof -> Lwt.return n
-    | Ok (`Data m) -> loop (n + Cstruct.len m)
+    | Ok (`Data m) -> loop (n + Cstruct.length m)
     | Error _ -> failwith "In_memory_buffer.read"
   in
   loop 0

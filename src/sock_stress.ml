@@ -71,10 +71,10 @@ let send_receive_verify i flow max_data_length =
       debug "%d: send_receive_verify reader EOF after %d bytes" i n;
       Lwt.return n
     | Ok (`Data buf) ->
-      debug "%d: send_receive_verify reader read %d" i (Cstruct.len buf);
+      debug "%d: send_receive_verify reader read %d" i (Cstruct.length buf);
       let s = Cstruct.to_string buf in
       Sha256.update_string reader_sha s;
-      reader (n + (Cstruct.len buf))
+      reader (n + (Cstruct.length buf))
     | Error _ ->
       failwith "Flow read error" in
   let writer_sha = Sha256.init () in
@@ -89,7 +89,7 @@ let send_receive_verify i flow max_data_length =
       end else begin
         let this_time = min buffer_size remaining in
         let buf = Cstruct.create this_time in
-        for i = 0 to Cstruct.len buf - 1 do
+        for i = 0 to Cstruct.length buf - 1 do
           Cstruct.set_uint8 buf i (Random.int 255)
         done;
         let s = Cstruct.to_string buf in

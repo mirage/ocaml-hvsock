@@ -105,7 +105,7 @@ let writev t bufs =
             raise (Unix.Unix_error (Unix.EPIPE, "writev", "")) ;
           qs.write := !(qs.write) @ bufs ;
           Condition.signal t.c ;
-          List.fold_left ( + ) 0 (List.map Cstruct.len bufs)
+          List.fold_left ( + ) 0 (List.map Cstruct.length bufs)
       | _ -> raise (Unix.Unix_error (Unix.ENOTCONN, "writev", "")) )
 
 let read_into t buf =
@@ -118,8 +118,8 @@ let read_into t buf =
               if !(qs.shutdown_read) then 0
               else ( Condition.wait t.c t.m ; read () )
           | b :: bs ->
-              let buf_len = Cstruct.len buf in
-              let b_len = Cstruct.len b in
+              let buf_len = Cstruct.length buf in
+              let b_len = Cstruct.length b in
               let to_read = min b_len buf_len in
               Cstruct.blit b 0 buf 0 to_read ;
               if buf_len >= b_len then qs.read := bs
