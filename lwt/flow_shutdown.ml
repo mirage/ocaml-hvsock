@@ -94,7 +94,7 @@ let connect fd =
 (* Write a whole buffer to the fd, without any encapsulation *)
 let really_write fd buffer =
   let rec loop remaining =
-    if Cstruct.len remaining = 0
+    if Cstruct.length remaining = 0
     then Lwt.return `Done
     else
       Socket.write fd remaining >>= function
@@ -117,7 +117,7 @@ let really_write fd buffer =
 (* Read a whole buffer from the fd, without any encapsulation *)
 let really_read fd buffer =
   let rec loop remaining =
-    if Cstruct.len remaining = 0
+    if Cstruct.length remaining = 0
     then Lwt.return `Done
     else
       Socket.read fd remaining >>= function
@@ -217,7 +217,7 @@ let write flow buffer =
   if flow.closed || flow.write_closed then Lwt.return (Error `Closed)
   else
     let rec loop remaining =
-      let len = Cstruct.len remaining in
+      let len = Cstruct.length remaining in
       if len = 0
       then Lwt.return (Ok ())
       else
@@ -269,7 +269,7 @@ let read_next_chunk flow =
     loop ()
 
 let read flow =
-  if Cstruct.len flow.leftover = 0 then
+  if Cstruct.length flow.leftover = 0 then
     Lwt_mutex.with_lock flow.rlock (fun () ->
         read_next_chunk flow >|= function
         | `Eof  -> Ok `Eof
@@ -281,15 +281,15 @@ let read flow =
     Lwt.return (Ok (`Data result))
 
 let rec read_into flow buf =
-  if Cstruct.len buf = 0
+  if Cstruct.length buf = 0
   then Lwt.return (Ok (`Data ()))
   else begin
-    if Cstruct.len flow.leftover = 0 then begin
+    if Cstruct.length flow.leftover = 0 then begin
       Lwt_mutex.with_lock flow.rlock (fun () ->
           read_next_chunk flow >|= function
           | `Eof        -> `Eof
           | `Ok payload ->
-            let to_consume = min (Cstruct.len buf) (Cstruct.len payload) in
+            let to_consume = min (Cstruct.length buf) (Cstruct.length payload) in
             Cstruct.blit payload 0 buf 0 to_consume;
             flow.leftover <- Cstruct.shift payload to_consume;
             `Ok (Cstruct.shift buf to_consume)
@@ -297,7 +297,7 @@ let rec read_into flow buf =
       | `Eof    -> Lwt.return (Ok `Eof)
       | `Ok buf -> read_into flow buf
     end else begin
-      let to_consume = min (Cstruct.len buf) (Cstruct.len flow.leftover) in
+      let to_consume = min (Cstruct.length buf) (Cstruct.length flow.leftover) in
       Cstruct.blit flow.leftover 0 buf 0 to_consume;
       flow.leftover <- Cstruct.shift flow.leftover to_consume;
       read_into flow (Cstruct.shift buf to_consume)
