@@ -1,3 +1,7 @@
+## 3.0.1 (2022-06-18)
+
+- Update cmdliner dependency to 1.1
+
 ## 3.0.0 (2021-05-15)
 
 - Use new Mirage signatures (#66 from @talex5)
