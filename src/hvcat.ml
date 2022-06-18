@@ -176,12 +176,13 @@ let cmd =
     `P "To connect to a service in a VM on Linux:";
     `P "hvcat hvsock://2:80/";
   ] in
-  Term.(pure main $ listen $ echo $ uri $ register),
-  Term.info "hvcat" ~version:"0.1" ~doc ~man
+  let t = Term.(const main $ listen $ echo $ uri $ register) in
+  let info = Cmd.info "hvcat" ~version:"0.1" ~doc ~man in
+  Cmd.v info t
 
 let () =
 let (_: Lwt_unix.signal_handler_id) = Lwt_unix.on_signal Sys.sigint
   (fun (_: int) ->
     Lwt.wakeup_later sigint_u ();
   ) in
-  match Term.eval cmd with `Error _ -> exit 1 | _ -> exit 0
+  Stdlib.exit @@ Cmd.eval cmd
