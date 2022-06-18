@@ -186,14 +186,14 @@ let connect ?(message_size = 8192) ?(buffer_size = 262144) fd =
             Mutex.unlock t.read_buffers_m;
             if n = 0 then begin
               Log.debug (fun f -> f "read_thread read length 0");
-              Log.err (fun f -> f "Read of length 0 from AF_HVSOCK");
               raise End_of_file
             end else loop @@ Cstruct.shift remaining n
           end in
         loop buffer
       done
     with e ->
-      Log.err (fun f -> f "Flow read_thread caught: %s" (Printexc.to_string e));
+      if e <> End_of_file
+      then Log.err (fun f -> f "Flow read_thread caught: %s" (Printexc.to_string e));
       Log.debug (fun f -> f "read_thread read_thread_exit <- true");
       Mutex.lock t.read_buffers_m;
       t.read_thread_exit <- true;
