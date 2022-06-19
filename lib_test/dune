@@ -2,7 +2,3 @@
  (names test fuzz_buffering)
  (libraries hvsock hvsock.lwt-unix alcotest logs.fmt)
 )
-(alias
- (name    runtest)
- (deps    test.exe)
- (action  (run ./test.exe -e -v)))

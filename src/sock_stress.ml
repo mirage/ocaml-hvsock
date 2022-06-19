@@ -152,8 +152,7 @@ let main c p i v l =
     | Some "hvsock", Some vmid ->
       begin match Uuidm.of_string vmid with
       | Some vmid ->
-        Lwt_main.run (client (Hvsock.Af_hyperv.Id vmid) p i l);
-        `Ok ()
+        Lwt_main.run (client (Hvsock.Af_hyperv.Id vmid) p i l)
       | None ->
         Printf.fprintf stderr "Failed to parse VM GUID: %s\n" vmid;
         exit 1
@@ -190,12 +189,13 @@ let cmd =
     `P "To connect to a service in a remote partition:";
     `P "sock_stress -c hvsock://<vmid>";
   ] in
-  Term.(const main $ c $ p $ i $ v $ l),
-  Term.info "sock_stress" ~version:"%0.1" ~doc ~exits:Term.default_exits ~man
+  let t = Term.(const main $ c $ p $ i $ v $ l) in
+  let info = Cmd.info "sock_stress" ~version:"%0.1" ~doc ~exits:Cmd.Exit.defaults ~man in
+  Cmd.v info t
 
 let () =
 let (_: Lwt_unix.signal_handler_id) = Lwt_unix.on_signal Sys.sigint
   (fun (_: int) ->
     Lwt.wakeup_later sigint_u ();
   ) in
-  Term.exit @@ Term.eval cmd
+  Stdlib.exit @@ Cmd.eval cmd
