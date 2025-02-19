@@ -21,7 +21,7 @@ module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): s
 
   type error = [ `Unix of Unix.error ]
 
-  include Mirage_flow_combinators.SHUTDOWNABLE with type error := error
+  include Mirage_flow.S with type error := error
 
   module Socket: S.SOCKET with type sockaddr = Socket_family.sockaddr
 

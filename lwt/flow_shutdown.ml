@@ -169,6 +169,13 @@ let shutdown_read flow =
       )
   end
 
+let shutdown flow = function
+  | `write -> shutdown_write flow
+  | `read -> shutdown_read flow
+  | `read_write ->
+     shutdown_read flow >>= fun () ->
+     shutdown_write flow
+
 let close flow =
   match flow.closed with
   | false ->

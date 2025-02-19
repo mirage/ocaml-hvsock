@@ -82,7 +82,7 @@ let send_receive_verify i flow max_data_length =
     let rec loop remaining =
       if remaining = 0 then begin
         (* FIXME: this really should be close *)
-        Hv.shutdown_write flow
+        Hv.shutdown flow `write
         >>= fun () ->
         debug "%d: send_receive_verify writer loop shutdown_write after %d bytes" i n;
         Lwt.return ()
