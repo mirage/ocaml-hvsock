@@ -16,7 +16,7 @@
  *
  *)
 
-module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
+module Make(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
   (** A buffered Mirage FLOW implementation over a hypervisor socket *)
 
   type error = [ `Unix of Unix.error ]

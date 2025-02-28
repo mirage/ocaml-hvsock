@@ -21,7 +21,7 @@
     https://github.com/rneugeba/virtsock/tree/master/go/hvsock
 *)
 
-module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
+module Make(Fn: S.FN)(Socket_family: Hvsock.Af_common.S): sig
 
   (** A Mirage FLOW over a hypervisor socket with an additional protocol layer to
       workaround bugs where in-flight data is lost after a shutdown_write or a close.
