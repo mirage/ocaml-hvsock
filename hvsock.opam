@@ -27,7 +27,6 @@ depends: [
   "uuidm"
   "uutf"
   "mirage-flow" {>= "5.0.0"}
-  "mirage-time" {>= "2.0.0"}
   "cstruct" {>= "6.0.0"}
   "duration"
   "dune" {>= "1.2.0"}
