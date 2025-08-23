@@ -57,11 +57,7 @@ let register =
 
 let buffer_size = 4096
 
-module Time = struct
-  type 'a io = 'a Lwt.t
-  let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
-end
-module Hv = Hvsock_lwt.Socket.Make(Time)(Hvsock_lwt_unix.Preemptive_detach)(Hvsock.Socket)
+module Hv = Hvsock_lwt.Socket.Make(Hvsock_lwt_unix.Preemptive_detach)(Hvsock.Socket)
 
 let make_channels t =
   let read_buffer = Cstruct.create buffer_size in

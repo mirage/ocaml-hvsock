@@ -53,9 +53,9 @@ end
 
 open Lwt.Infix
 
-module Make(Time: Mirage_time.S)(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
+module Make(Fn: S.FN)(Socket_family: Hvsock.Af_common.S) = struct
 
-module Socket = Socket.Make(Time)(Fn)(Socket_family)
+module Socket = Socket.Make(Fn)(Socket_family)
 
 type error = [ `Unix of Unix.error ]
 let pp_error ppf (`Unix e) = Fmt.string ppf (Unix.error_message e)
@@ -168,6 +168,13 @@ let shutdown_read flow =
           Lwt.return ()
       )
   end
+
+let shutdown flow = function
+  | `write -> shutdown_write flow
+  | `read -> shutdown_read flow
+  | `read_write ->
+     shutdown_read flow >>= fun () ->
+     shutdown_write flow
 
 let close flow =
   match flow.closed with

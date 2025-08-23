@@ -14,4 +14,4 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *
  *)
-include Hvsock_lwt.Flow.Make(Time)(Preemptive_detach)(Hvsock.Af_hyperv)
+include Hvsock_lwt.Flow.Make(Preemptive_detach)(Hvsock.Af_hyperv)

@@ -38,11 +38,7 @@ let default_serviceid =
 
 let buffer_size = 4096
 
-module Time = struct
-  type 'a io = 'a Lwt.t
-  let sleep_ns ns = Lwt_unix.sleep (Duration.to_f ns)
-end
-module Hv = Hvsock_lwt.Flow.Make(Time)(Hvsock_lwt_unix.Preemptive_detach)(Hvsock.Af_hyperv)
+module Hv = Hvsock_lwt.Flow.Make(Hvsock_lwt_unix.Preemptive_detach)(Hvsock.Af_hyperv)
 
 let rec connect i vmid serviceid =
   let fd = Hv.Socket.create () in
@@ -82,7 +78,7 @@ let send_receive_verify i flow max_data_length =
     let rec loop remaining =
       if remaining = 0 then begin
         (* FIXME: this really should be close *)
-        Hv.shutdown_write flow
+        Hv.shutdown flow `write
         >>= fun () ->
         debug "%d: send_receive_verify writer loop shutdown_write after %d bytes" i n;
         Lwt.return ()
