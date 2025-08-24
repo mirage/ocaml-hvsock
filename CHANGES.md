@@ -1,3 +1,8 @@
+## 3.1.0 (2025-08-24)
+
+- Update to latest mirage-flow libraries (#69 from @patricoferris)
+- Remove Mirage_time.S (#69 #70 from @patricoferris @hannesm)
+
 ## 3.0.1 (2022-06-18)
 
 - Update cmdliner dependency to 1.1
